@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: microgitops-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/your-username/your-gitops-repo.git' # Placeholder (or local filesystem path)
+    targetRevision: HEAD
+    path: helm/microgitops
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: microgitops
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false # Already created by Terraform
