@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/your-username/your-gitops-repo.git' # Placeholder (or local filesystem path)
+    repoURL: 'https://github.com/Bullute/project-2.git'
     targetRevision: HEAD
     path: helm/microgitops
     helm:

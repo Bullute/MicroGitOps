@@ -27,7 +27,7 @@ try:
             print(f"❌ Istek Hatasi ({errors}. Hata): {e}")
             
         # İstekler arası bekleme suresi (100ms = Saniyede yaklasik 10 istek).
-        time.sleep(0.1)
+        time.sleep(0.05)
 
 except KeyboardInterrupt:
     print("\n👋 Yuk testi kullanici tarafindan durduruldu.")
