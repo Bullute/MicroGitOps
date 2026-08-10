@@ -8,7 +8,6 @@ terraform {
   }
 }
 
-# Configures access using local Kubeconfig file
 provider "kubernetes" {
-  config_path = "/home/staj/.kube/config"
+  config_path = "${path.module}/../aws-kubeconfig"
 }

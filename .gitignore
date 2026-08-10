@@ -20,3 +20,11 @@ env/
 .idea/
 .vscode/
 .DS_Store
+
+# Kubernetes credentials & keys
+aws-kubeconfig
+*.pem
+*.key
+
+# Large Docker tarballs
+*.tar
