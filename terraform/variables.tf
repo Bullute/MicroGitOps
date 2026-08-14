@@ -16,3 +16,4 @@ variable "db_password" {
   default     = "SuperSecretPassword123"
   sensitive   = true
 }
+

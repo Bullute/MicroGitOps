@@ -2,8 +2,8 @@ import urllib.request
 import time
 import sys
 
-url = "http://localhost:8090/"
-print(f"🚀 MicroGitOps Load Test Baslatildi! Hede: {url}")
+url = "http://microgitops.local/"
+print(f"🚀 MicroGitOps Load Test Baslatildi! Hedef: {url}")
 print("Ctrl+C tusuna basarak testi durdurabilirsiniz.\n")
 
 requests_sent = 0
