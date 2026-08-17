@@ -72,7 +72,7 @@ Below are the live dashboard captures verifying the successful GitOps synchroniz
 ![ArgoCD Dashboard](./argocd-dashboard.png)
 
 ### 2. Grafana Observability Dashboard (Under Sleep-Wave Load Test)
-![Grafana Dashboard](./grafana-dashboard.png)
+![Grafana Dashboard](./grafana-observability.png)
 
 ---
 
