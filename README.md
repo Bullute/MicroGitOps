@@ -27,7 +27,7 @@ graph TD
     end
 
     %% Section 3: AWS
-    subgraph aws [3. AWS Bulut Ortamı / K3s K8s]
+    subgraph aws [3. AWS Cloud Environment / K3s K8s]
         I[Traefik Ingress: Port 80 / DNS] -->|Routes traffic| J[App Service: Load Balancer]
         J -->|Round-Robin| K[Pod 1: FastAPI container]
         J -->|Round-Robin| L[Pod 2: FastAPI container]
@@ -59,8 +59,8 @@ graph TD
    * Managed via **Helm Charts** defining scalable templates (Deployments, Services, Ingresses, HPA, and ServiceMonitors) synchronized automatically onto the cluster via **ArgoCD**.
 
 5. **Site Reliability Engineering (SRE):**
-   * Deployed on a memory-constrained AWS EC2 `t3.micro` (1 GB RAM) instance.
-   * Diagnosed and resolved Out-Of-Memory (OOM) crashing by configuring a **2 GB Linux Swap file** (`/swapfile`) to stabilize the OS.
+   * Vertically scaled from `t3.micro` (1 GB) through `t3.small` (2 GB) to **`c7i-flex.large`** (4 GB RAM) on AWS EC2, diagnosing and resolving Out-Of-Memory (OOM) crashes at each stage.
+   * Configured a **2 GB Linux Swap file** (`/swapfile`) and performed live K3s control-plane recovery under SQLite database lock contention.
 
 ---
 
@@ -80,7 +80,7 @@ Below are the live dashboard captures verifying the successful GitOps synchroniz
 ### 4. Grafana Observability HTTP Request Rate
 ![Grafana Dashboard](./grafana_rr.png)
 
-### 5. Grafana Observability Avarage Request Latency 
+### 5. Grafana Observability Average Request Latency 
 ![Grafana Dashboard](./grafana_arl.png)
 
 ---
@@ -89,19 +89,22 @@ Below are the live dashboard captures verifying the successful GitOps synchroniz
 
 ```text
 ├── .github/workflows/
-│   └── ci.yml               # GitHub Actions CI pipeline rules (Ruff & Trivy)
+│   └── ci.yml               # GitHub Actions CI pipeline (Ruff lint & Trivy scan)
 ├── terraform/
 │   ├── main.tf              # Terraform manifests (Namespaces, Secrets, ConfigMaps)
 │   ├── providers.tf         # K8s provider bindings (AWS remote Kubeconfig target)
-│   └── variables.tf         # Parameter maps
+│   └── variables.tf         # Parameterized input variables
 ├── helm/microgitops/
-│   ├── Chart.yaml           # Helm metadata
-│   ├── values.yaml          # Variables panel (Replica Count, CPU/RAM configuration)
-│   └── templates/           # Templates (deployment, service, ingress, HPA, servicemonitor)
+│   ├── Chart.yaml           # Helm chart metadata
+│   ├── values.yaml          # Configuration panel (replicas, CPU/RAM, ingress, HPA)
+│   └── templates/           # K8s templates (deployment, service, ingress, HPA, servicemonitor)
 ├── grafana/
-│   └── dashboard.json       # Visual JSON model of our metrics dashboard
-├── main.py                  # FastAPI server with Prometheus middleware
-├── Dockerfile               # Production multi-stage Docker build recipe
+│   └── dashboard.json       # Custom Grafana dashboard JSON model
+├── main.py                  # FastAPI server with Prometheus instrumentation middleware
+├── Dockerfile               # Production-hardened multi-stage Docker build
+├── argocd-app.yaml          # ArgoCD Application manifest for GitOps sync
+├── stress_test.py           # Dynamic wave-pattern HTTP load testing utility
+├── requirements.txt         # Python dependencies (FastAPI, Uvicorn, Prometheus)
 └── README.md                # Project documentation
 ```
 
@@ -120,8 +123,8 @@ docker run --rm -p 8000:8000 microgitops:v1
 ```
 Access endpoints:
 * **Home:** `http://localhost:8000/`
-* **Sağlık Kontrolü:** `http://localhost:8000/health`
-* **Metrikler:** `http://localhost:8000/metrics`
+* **Health Check:** `http://localhost:8000/health`
+* **Metrics:** `http://localhost:8000/metrics`
 
 ### 2. Infrastructure Deployment (Terraform & Helm)
 Connect to the AWS K3s cluster and run:
@@ -133,8 +136,12 @@ cd terraform && terraform init && terraform apply -auto-approve
 cd .. && helm upgrade --install microgitops-release ./helm/microgitops -n microgitops
 ```
 
-### 3. Monitoring Verification
-Once targets are scraped by Prometheus, importing the `grafana/dashboard.json` dashboard design allows you to view:
+### 3. Load Testing & Monitoring Verification
+Run the built-in stress test to generate dynamic traffic patterns:
+```bash
+python stress_test.py
+```
+Once targets are scraped by Prometheus, import the `grafana/dashboard.json` dashboard to view:
 * HTTP Request Rates (counts/success)
 * Request Duration Latencies (percentiles)
-* CPU & memory consumption profiles
+* Dynamic wave-pattern traffic visualizations
