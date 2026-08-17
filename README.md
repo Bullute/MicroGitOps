@@ -77,6 +77,12 @@ Below are the live dashboard captures verifying the successful GitOps synchroniz
 ### 3. Grafana Observability Dashboard (Under Sleep-Wave Load Test)
 ![Grafana Dashboard](./grafana-observability.png)
 
+### 4. Grafana Observability HTTP Request Rate
+![Grafana Dashboard](./grafana_rr.png)
+
+### 5. Grafana Observability Avarage Request Latency 
+![Grafana Dashboard](./grafana_arl.png)
+
 ---
 
 ## 📂 Repository Structure
