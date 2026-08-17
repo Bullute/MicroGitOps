@@ -44,7 +44,7 @@ jobs:
 
       # Use Trivy to scan the built image for security vulnerabilities
       - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.24.0
         with:
           image-ref: 'microgitops:${{ github.sha }}'
           format: 'table'
