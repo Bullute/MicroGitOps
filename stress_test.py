@@ -3,8 +3,8 @@ import time
 import sys
 
 url = "http://microgitops.local/"
-print(f"🚀 MicroGitOps Load Test Baslatildi! Hedef: {url}")
-print("Ctrl+C tusuna basarak testi durdurabilirsiniz.\n")
+print(f"🚀 MicroGitOps Load Test Started! Target: {url}")
+print("Press Ctrl+C to stop the test.\n")
 
 requests_sent = 0
 errors = 0
@@ -12,26 +12,34 @@ errors = 0
 try:
     while True:
         try:
-            # Herhangi bir ucuncu parti kütüphaneye (requests vb.) ihtiyac duymadan standart urllib kullanıyoruz.
+            # Using standard urllib library to avoid external dependencies like requests
             req = urllib.request.Request(url, headers={'User-Agent': 'MicroGitOps-LoadTester/1.0'})
             with urllib.request.urlopen(req, timeout=2) as response:
                 response.read()
                 requests_sent += 1
                 
-                # Her 10 istekte bir konsola durum yazdırıyoruz.
+                # Print stats to console every 10 requests
                 if requests_sent % 10 == 0:
-                    print(f"✅ Gonderilen Toplam Istek: {requests_sent} | Hatalar: {errors}")
+                    print(f"✅ Total Requests Sent: {requests_sent} | Errors: {errors}")
                     
         except Exception as e:
             errors += 1
-            print(f"❌ Istek Hatasi ({errors}. Hata): {e}")
+            print(f"❌ Request Error ({errors}): {e}")
             
-        # İstekler arası bekleme suresi (100ms = Saniyede yaklasik 10 istek).
-        time.sleep(0.05)
+        # Generate dynamic traffic wave patterns (Burst -> Idle -> Normal -> Rest)
+        cycle = (requests_sent // 20) % 4
+        if cycle == 0:
+            time.sleep(0.01)  # Burst load (High Traffic)
+        elif cycle == 1:
+            time.sleep(0.25)  # Idle load (Low Traffic)
+        elif cycle == 2:
+            time.sleep(0.06)  # Medium load (Normal Traffic)
+        else:
+            time.sleep(0.40)  # Rest period (Minimal Traffic)
 
 except KeyboardInterrupt:
-    print("\n👋 Yuk testi kullanici tarafindan durduruldu.")
-    print(f"--- OZET ---")
-    print(f"Basarili Istek: {requests_sent}")
-    print(f"Hata Sayisi   : {errors}")
+    print("\n👋 Load test stopped by user.")
+    print(f"--- SUMMARY ---")
+    print(f"Successful Requests: {requests_sent}")
+    print(f"Failed Requests     : {errors}")
     sys.exit(0)
