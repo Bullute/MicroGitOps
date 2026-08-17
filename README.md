@@ -64,6 +64,18 @@ graph TD
 
 ---
 
+## 📸 Platform Previews & Dashboards
+
+Below are the live dashboard captures verifying the successful GitOps synchronization and the dynamic load testing metrics on our AWS cluster:
+
+### 1. ArgoCD GitOps Sync Status
+![ArgoCD Dashboard](./argocd-dashboard.png)
+
+### 2. Grafana Observability Dashboard (Under Sleep-Wave Load Test)
+![Grafana Dashboard](./grafana-dashboard.png)
+
+---
+
 ## 📂 Repository Structure
 
 ```text
