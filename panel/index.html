@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MicroGitOps — Operations Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0b1329;
+  --sidebar-bg: #080e1e;
+  --surface: #101c38;
+  --surface-raised: #17264a;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.16);
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.12);
+  --green: #4ade80;
+  --red: #f87171;
+  --yellow: #fbbf24;
+  --purple: #c084fc;
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 56px 1fr;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── HEADER ── */
+header {
+  grid-column: 1 / -1;
+  background: var(--sidebar-bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 15px; font-weight: 700; color: var(--text);
+  letter-spacing: -0.02em;
+}
+.brand-badge {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px; font-weight: 500;
+  color: var(--accent);
+}
+.search-mock {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px; color: var(--text-dim);
+  width: 280px;
+}
+.search-mock kbd {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  background: var(--surface-raised);
+  padding: 2px 6px; border-radius: 4px;
+  color: var(--text-muted);
+}
+.header-actions { display: flex; align-items: center; gap: 12px; }
+.env-pill {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.env-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+
+/* ── SIDEBAR (Dockhand Style Navigation) ── */
+aside {
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  padding: 16px 12px;
+  display: flex; flex-direction: column; gap: 20px;
+  overflow-y: auto;
+}
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-title {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text-dim);
+  padding: 0 10px 8px;
+}
+.nav-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px; font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all .15s ease;
+  width: 100%; text-align: left;
+}
+.nav-link:hover { color: var(--text); background: var(--surface); }
+.nav-link.active {
+  color: var(--accent);
+  background: var(--surface);
+  border-color: rgba(56, 189, 248, 0.2);
+}
+.nav-link svg {
+  width: 16px; height: 16px; stroke-width: 2;
+  stroke: currentColor; fill: none;
+  opacity: 0.8;
+}
+
+/* ── MAIN CONTENT ── */
+main {
+  background: var(--bg);
+  overflow-y: auto;
+  padding: 32px;
+}
+.page { display: none; }
+.page.active { display: block; }
+
+.page-header { margin-bottom: 24px; }
+.page-title { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+.page-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+/* ── CARDS & METRICS ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.card-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; font-weight: 600; color: var(--text);
+}
+.card-body { padding: 20px; }
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.stat-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.stat-value {
+  font-size: 22px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text);
+}
+
+/* ── TABLE ── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th {
+  padding: 12px 20px;
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 14px 20px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface-raised); }
+
+/* ── BADGES & PILLS ── */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  font-family: 'Inter', sans-serif;
+}
+.pill-running { background: rgba(74, 222, 128, 0.12); color: var(--green); }
+.pill-error   { background: rgba(248, 113, 113, 0.12); color: var(--red); }
+.pill-completed { background: rgba(56, 189, 248, 0.12); color: var(--accent); }
+
+.ns-badge {
+  display: inline-block;
+  padding: 2px 8px; border-radius: 4px;
+  font-size: 10.5px; font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+/* ── INPUTS & BUTTONS ── */
+.input-group { display: flex; gap: 10px; }
+.input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  outline: none;
+  transition: border-color .15s;
+}
+.input:focus { border-color: var(--accent); }
+select.input { cursor: pointer; }
+textarea.input { min-height: 90px; resize: vertical; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 12.5px; font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all .15s ease;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #0b1329; border-color: var(--accent); }
+.btn-primary:hover { background: #7dd3fc; }
+.btn-secondary { background: var(--surface-raised); color: var(--text); border-color: var(--border); }
+.btn-secondary:hover { border-color: var(--border-hover); background: #1e305c; }
+.btn-danger { background: rgba(248, 113, 113, 0.12); color: var(--red); border-color: rgba(248, 113, 113, 0.2); }
+.btn-danger:hover { background: rgba(248, 113, 113, 0.2); }
+
+/* ── TERMINAL ── */
+.terminal {
+  background: #060a17;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: var(--green);
+  min-height: 60px;
+  max-height: 280px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  display: none;
+}
+.terminal.show { display: block; }
+
+/* ── TUNNEL CARDS ── */
+.tunnel-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.tunnel-card.active { border-color: rgba(74, 222, 128, 0.3); background: rgba(74, 222, 128, 0.03); }
+.tunnel-header { display: flex; justify-content: space-between; align-items: center; }
+.tunnel-title { font-size: 14px; font-weight: 600; }
+.tunnel-url { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 13px; font-weight: 500;
+  z-index: 1000;
+  transform: translateY(100px); opacity: 0;
+  transition: all .25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+.form-stack { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── ACCORDION / FAQ ── */
+details.faq-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color .15s ease;
+}
+details.faq-item[open] {
+  border-color: rgba(56, 189, 248, 0.3);
+}
+summary.faq-summary {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text);
+  outline: none;
+}
+summary.faq-summary:hover {
+  background: var(--surface-raised);
+}
+summary.faq-summary::-webkit-details-marker { display: none; }
+.faq-content {
+  padding: 12px 16px 16px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="brand">
+    <span>MicroGitOps</span>
+    <span class="brand-badge">Control Panel</span>
+  </div>
+
+  <div class="search-mock">
+    <span>Search pods, services, tunnels...</span>
+    <kbd>Ctrl K</kbd>
+  </div>
+
+  <div class="header-actions">
+    <div class="env-pill">
+      <div class="env-dot"></div>
+      <span id="current-ip">Loading...</span>
+    </div>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:11px;" onclick="refreshAll()">Refresh</button>
+  </div>
+</header>
+
+<!-- SIDEBAR (Dockhand Style Navigation) -->
+<aside>
+  <div class="nav-group">
+    <div class="nav-title">Overview</div>
+    <button class="nav-link active" onclick="nav('dashboard', this)">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-link" onclick="nav('activity', this)">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Activity &amp; Charts
+    </button>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-title">Workloads</div>
+    <button class="nav-link" onclick="nav('workloads', this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      Workloads Manager
+    </button>
+    <button class="nav-link" onclick="nav('pods', this)">
+      <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+      Pods &amp; Containers
+    </button>
+    <button class="nav-link" onclick="nav('logs', this)">
+      <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      Pod Logs
+    </button>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-title">Networking</div>
+    <button class="nav-link" onclick="nav('tunnels', this)">
+      <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      Port Forwards
+    </button>
+    <button class="nav-link" onclick="nav('argocd-pw', this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      ArgoCD Key
+    </button>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-title">Scaling &amp; Deploy</div>
+    <button class="nav-link" onclick="nav('stress', this)">
+      <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Stress &amp; Auto-Scale
+    </button>
+    <button class="nav-link" onclick="nav('deploy', this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 8 8 12 12 16"/><line x1="16" y1="12" x2="8" y2="12"/></svg>
+      Helm Deploy
+    </button>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-title">Management</div>
+    <button class="nav-link" onclick="nav('onboard', this)">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+      App Onboarding
+    </button>
+    <button class="nav-link" onclick="nav('settings', this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings &amp; AWS IP
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div class="page-title">Dashboard Overview</div>
+      <div class="page-desc">Real-time status of AWS EC2 Node and Kubernetes Workloads</div>
+    </div>
+
+    <div class="grid-2">
+      <div class="stat-card">
+        <div class="stat-label">Node CPU Usage</div>
+        <div class="stat-value" id="node-cpu">Loading...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Node Memory Usage</div>
+        <div class="stat-value" id="node-mem">Loading...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span>Active Workloads</span>
+        <span id="dash-pod-count" style="font-size:11px;color:var(--text-dim);"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Namespace</th>
+              <th>Name</th>
+              <th>Ready</th>
+              <th>Status</th>
+              <th>Restarts</th>
+            </tr>
+          </thead>
+          <tbody id="dash-pod-body">
+            <tr><td colspan="5" style="color:var(--text-dim);padding:20px;">Loading pods...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY & CHARTS -->
+  <div class="page" id="page-activity">
+    <div class="page-header">
+      <div class="page-title">Activity &amp; Metrics</div>
+      <div class="page-desc">Grafana-style real-time resource chart and Kubernetes scaling timeline</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span>Live CPU &amp; Memory Utilization Trend (Grafana Mini-View)</span>
+      </div>
+      <div class="card-body">
+        <div style="height: 220px;">
+          <canvas id="metricsChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span>Kubernetes Cluster Events &amp; Scaling Timeline</span>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <select class="input" id="activity-ns-select" onchange="fetchActivity()" style="padding:4px 8px;font-size:11px;max-width:180px;">
+            <option value="all">All Namespaces</option>
+          </select>
+          <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="fetchActivity()">Refresh Events</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Last Seen</th>
+              <th>Type</th>
+              <th>Reason</th>
+              <th>Object</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody id="activity-events-body">
+            <tr><td colspan="5" style="color:var(--text-dim);padding:20px;">Loading cluster events...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PODS & CONTAINERS -->
+  <div class="page" id="page-pods">
+    <div class="page-header">
+      <div class="page-title">Pods &amp; Containers</div>
+      <div class="page-desc">Filter and manage all running Kubernetes pods</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" style="display:flex;gap:12px;align-items:center;">
+        <input type="text" class="input" id="pod-search" placeholder="🔍 Search by namespace or pod name..." oninput="filterPods()" style="max-width:320px;">
+        <select class="input" id="pod-ns-filter" onchange="filterPods()" style="max-width:180px;">
+          <option value="all">All Namespaces</option>
+        </select>
+        <span id="pod-count" style="font-size:12px;color:var(--text-muted);margin-left:auto;"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Namespace</th>
+              <th>Name</th>
+              <th>Ready</th>
+              <th>Status</th>
+              <th>Restarts</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="pod-table-body">
+            <tr><td colspan="6" style="color:var(--text-dim);padding:20px;">Loading pods...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- WORKLOADS MANAGER -->
+  <div class="page" id="page-workloads">
+    <div class="page-header">
+      <div class="page-title">Workloads Manager</div>
+      <div class="page-desc">View, scale and restart all Deployments across the cluster</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        All Deployments
+        <button class="btn btn-secondary" style="padding:5px 12px;font-size:11px;" onclick="loadWorkloads()">↺ Refresh</button>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-wrap">
+          <table id="workloads-table">
+            <thead>
+              <tr>
+                <th>Namespace</th>
+                <th>Deployment</th>
+                <th>Ready</th>
+                <th>Available</th>
+                <th>Age</th>
+                <th>Replicas</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="workloads-body">
+              <tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:24px;">Loading deployments...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Pod-Level Control</div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-wrap">
+          <table id="workload-pods-table">
+            <thead>
+              <tr>
+                <th>Namespace</th>
+                <th>Pod Name</th>
+                <th>Ready</th>
+                <th>Status</th>
+                <th>Restarts</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="workload-pods-body">
+              <tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:24px;">Pod list refreshes automatically.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="terminal" id="workloads-terminal"></div>
+  </div>
+
+  <!-- POD LOGS -->
+  <div class="page" id="page-logs">
+    <div class="page-header">
+      <div class="page-title">Pod Logs Viewer</div>
+      <div class="page-desc">Inspect real-time stdout console logs from any container</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span id="log-target-title">Container Console Output</span>
+      </div>
+      <div class="card-body">
+        <div class="terminal show" id="logs-terminal" style="min-height:220px;">Click "View Logs" next to any pod in the Pods section to view logs.</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- PORT FORWARDS / TUNNELS -->
+  <div class="page" id="page-tunnels">
+    <div class="page-header">
+      <div class="page-title">Port Forwards &amp; Tunnels</div>
+      <div class="page-desc">Establish secure localhost tunnels to Grafana, ArgoCD, and Prometheus</div>
+    </div>
+
+    <div class="grid-3">
+      <div class="tunnel-card" id="tunnel-grafana">
+        <div class="tunnel-header">
+          <div class="tunnel-title">Grafana</div>
+          <span class="pill pill-error" id="status-grafana">Stopped</span>
+        </div>
+        <div class="tunnel-url">localhost:3000</div>
+        
+        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="color:var(--text-muted)">User:</span>
+            <strong style="color:var(--accent)">admin</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:var(--text-muted)">Pass:</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <code id="cred-grafana-pass" style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;color:var(--green);font-family:monospace;font-size:11px;">YIQ5fTrlrgt...</code>
+              <button class="btn btn-secondary" style="padding:2px 8px;font-size:11px;" onclick="copyCred('grafana')">📋 Copy</button>
+            </span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="startTunnel('grafana')">Start Tunnel</button>
+      </div>
+
+      <div class="tunnel-card" id="tunnel-argocd">
+        <div class="tunnel-header">
+          <div class="tunnel-title">ArgoCD</div>
+          <span class="pill pill-error" id="status-argocd">Stopped</span>
+        </div>
+        <div class="tunnel-url">localhost:8080</div>
+
+        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="color:var(--text-muted)">User:</span>
+            <strong style="color:var(--accent)">admin</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:var(--text-muted)">Pass:</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <code id="cred-argocd-pass" style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;color:var(--yellow);font-family:monospace;font-size:11px;">JbKyqnzcUY...</code>
+              <button class="btn btn-secondary" style="padding:2px 8px;font-size:11px;" onclick="copyCred('argocd')">📋 Copy</button>
+            </span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="startTunnel('argocd')">Start Tunnel</button>
+      </div>
+
+      <div class="tunnel-card" id="tunnel-prometheus">
+        <div class="tunnel-header">
+          <div class="tunnel-title">Prometheus</div>
+          <span class="pill pill-error" id="status-prometheus">Stopped</span>
+        </div>
+        <div class="tunnel-url">localhost:9090</div>
+
+        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="color:var(--text-muted)">Auth:</span>
+            <span style="color:var(--green)">No Auth Required</span>
+          </div>
+          <div style="color:var(--text-dim);font-size:11px;">Direct Metrics Access</div>
+        </div>
+
+        <button class="btn btn-primary" onclick="startTunnel('prometheus')">Start Tunnel</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <button class="btn btn-danger" onclick="stopAllTunnels()">Stop All Tunnels</button>
+    </div>
+
+    <div class="terminal" id="tunnel-terminal"></div>
+  </div>
+
+  <!-- ARGOCD KEY -->
+  <div class="page" id="page-argocd-pw">
+    <div class="page-header">
+      <div class="page-title">ArgoCD Key</div>
+      <div class="page-desc">Retrieve initial admin password from Kubernetes secret</div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <button class="btn btn-secondary" onclick="fetchArgoCDPw()">Retrieve Password</button>
+        <div class="terminal" id="argocd-pw-terminal" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STRESS & AUTO-SCALE -->
+  <div class="page" id="page-stress">
+    <div class="page-header">
+      <div class="page-title">Stress &amp; Auto-Scaling (HPA)</div>
+      <div class="page-desc">Select target application/service and parallelism to test Kubernetes auto-scaling</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span>Target Service Selection &amp; Load Parameters</span>
+      </div>
+      <div class="card-body">
+        <div class="form-stack" style="max-width:600px;margin-bottom:16px;">
+          <div>
+            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">Target Service / Application Reference:</label>
+            <select class="input" id="stress-target-select" onchange="toggleCustomTarget()">
+              <option value="http://microgitops.local/burn?duration=5">🔥 microgitops-app: CPU Heavy Burn (/burn?duration=5)</option>
+              <option value="http://microgitops.local/health">⚡ microgitops-app: Health Endpoint (/health)</option>
+              <option value="http://microgitops.local/">🌐 microgitops-app: Root App (/)</option>
+              <option value="custom">✏️ Custom Target URL / Endpoint...</option>
+            </select>
+          </div>
+
+          <div id="custom-target-wrap" style="display:none;">
+            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">Enter Custom URL:</label>
+            <input type="text" class="input" id="stress-custom-url" placeholder="e.g. http://16.171.194.128:80/my-app">
+          </div>
+
+          <div>
+            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">Parallel Connections (Concurrency Threads):</label>
+            <select class="input" id="stress-connections-select">
+              <option value="10">10 Connections (Light Ping)</option>
+              <option value="50" selected>50 Connections (Medium — Recommended for HPA)</option>
+              <option value="100">100 Connections (Heavy Stress)</option>
+              <option value="200">200 Connections (Extreme Load Spike)</option>
+            </select>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:8px;">
+            <button class="btn btn-primary" onclick="stressStart()">Start Selected Test</button>
+            <button class="btn btn-danger" onclick="stressStop()">Stop Stress Test</button>
+          </div>
+        </div>
+
+        <div class="terminal" id="stress-terminal"></div>
+      </div>
+    </div>
+
+    <!-- MINI LIVE HPA SCALING GRAPH -->
+    <div class="card">
+      <div class="card-head">
+        <span>📈 Live HPA Pod Auto-Scaling Trend (Scale-Up / Scale-Down Graph)</span>
+        <div style="font-size:11px;color:var(--text-muted);" id="hpa-live-summary">Replicas: — | Load: —</div>
+      </div>
+      <div class="card-body">
+        <div style="height: 180px;">
+          <canvas id="hpaScaleChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" style="display:flex;gap:12px;align-items:center;">
+        <span>Live HPA &amp; Pod Monitor Output (kubectl)</span>
+        <div style="display:flex;gap:10px;align-items:center;margin-left:auto;">
+          <select class="input" id="hpa-ns-select" onchange="fetchHpaStatus()" style="padding:4px 8px;font-size:11px;max-width:160px;">
+            <option value="microgitops">microgitops</option>
+            <option value="all">All Namespaces</option>
+          </select>
+          <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="fetchHpaStatus()">Refresh</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="terminal show" id="hpa-terminal" style="min-height:160px;color:var(--text);">Loading HPA status...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HELM DEPLOY -->
+  <div class="page" id="page-deploy">
+    <div class="page-header">
+      <div class="page-title">Helm Deploy &amp; Rollout</div>
+      <div class="page-desc">Execute zero-downtime rolling restarts or Helm release updates</div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div style="display:flex;gap:12px;">
+          <button class="btn btn-primary" onclick="deployApp()">Helm Upgrade</button>
+          <button class="btn btn-secondary" onclick="restartPods()">Zero-Downtime Rollout Restart</button>
+        </div>
+        <div class="terminal" id="deploy-terminal" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP ONBOARDING -->
+  <div class="page" id="page-onboard">
+    <div class="page-header">
+      <div class="page-title">App Onboarding Requests</div>
+      <div class="page-desc">Managed service workflow for client application onboarding</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span>Submit Request</span>
+      </div>
+      <div class="card-body">
+        <div class="form-stack">
+          <input type="text" class="input" id="req-app-name" placeholder="Application Name (e.g. my-store)">
+          <input type="text" class="input" id="req-domain" placeholder="Domain Name (e.g. store.local)">
+          <input type="text" class="input" id="req-owner" placeholder="Client / Owner Name">
+          <textarea class="input" id="req-notes" placeholder="Special notes (PostgreSQL required, high traffic, etc.)"></textarea>
+          <div>
+            <button class="btn btn-primary" onclick="submitOnboarding()">Submit Request</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span>Pending Requests</span>
+      </div>
+      <div id="requests-list" style="padding:20px;font-size:13px;color:var(--text-muted);">No pending requests.</div>
+    </div>
+  </div>
+
+  <!-- SETTINGS & AWS IP -->
+  <div class="page" id="page-settings">
+    <div class="page-header">
+      <div class="page-title">Settings &amp; AWS IP</div>
+      <div class="page-desc">Update public IP configurations when EC2 restarts</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span>AWS EC2 Public IP Configuration</span>
+        <a href="https://console.aws.amazon.com/ec2/v2/home#Instances:" target="_blank" class="btn btn-secondary" style="padding:4px 10px;font-size:11px;text-decoration:none;">Open AWS Console ↗</a>
+      </div>
+      <div class="card-body">
+        <div class="input-group" style="margin-bottom:12px;">
+          <input type="text" class="input" id="new-ip-input" placeholder="e.g. 16.171.194.128">
+          <button class="btn btn-primary" onclick="updateIP()">Update Configs</button>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);">
+          Automatically updates Kubeconfig and <code>/etc/hosts</code> routing for <code>microgitops.local</code>.
+        </div>
+        <div class="terminal" id="ip-terminal" style="margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <!-- TROUBLESHOOTING & GUIDELINES ACCORDION CARD -->
+    <div class="card">
+      <div class="card-head">
+        <span>🛠️ Troubleshooting &amp; Guidelines (Tıklayarak Açın)</span>
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+        
+        <!-- Issue 1: etc hosts permission -->
+        <details class="faq-item">
+          <summary class="faq-summary">
+            <span style="display:flex;align-items:center;gap:8px;">
+              <span style="color:var(--yellow)">⚠ Problem:</span> <code>/etc/hosts</code> Otomatik Güncellenemiyor (Sudo Required)
+            </span>
+            <span style="font-size:11px;color:var(--text-dim);font-weight:500;">▼ Detay</span>
+          </summary>
+          <div class="faq-content">
+            <div style="margin-bottom:10px;">
+              IP güncellediğinizde <i>"sudo şifresi gerekiyor"</i> veya <i>"/etc/hosts update failed"</i> uyarısı alıyorsanız, panelin arka planda şifresiz dosya yazabilmesi için terminalinizde şu komutu <b>1 kez</b> çalıştırmanız yeterlidir:
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;background:var(--surface-raised);padding:8px 12px;border-radius:8px;border:1px solid var(--border);">
+              <code style="color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:12px;flex:1;">sudo chmod 666 /etc/hosts</code>
+              <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="copyToClipboard('sudo chmod 666 /etc/hosts', 'Copied chmod command!')">📋 Copy Command</button>
+            </div>
+          </div>
+        </details>
+
+        <!-- Issue 2: AWS IP Change -->
+        <details class="faq-item">
+          <summary class="faq-summary">
+            <span style="display:flex;align-items:center;gap:8px;">
+              <span style="color:var(--accent)">💡 Yönerge:</span> AWS EC2 Sunucusu Yeniden Başladığında Ne Yapılmalı?
+            </span>
+            <span style="font-size:11px;color:var(--text-dim);font-weight:500;">▼ Detay</span>
+          </summary>
+          <div class="faq-content">
+            AWS EC2 durdurulup açıldığında Public IP adresi değişebilir. AWS Console'dan yeni Public IP'yi alıp yukarıdaki kutucuğa yapıştırın ve <b>Update Configs</b> butonuna basın. Kubeconfig ve domain yönlendirmesi otomatik güncellenecektir.
+          </div>
+        </details>
+
+        <!-- Issue 3: kubectl timeout -->
+        <details class="faq-item">
+          <summary class="faq-summary">
+            <span style="display:flex;align-items:center;gap:8px;">
+              <span style="color:var(--green)">⚡ Yönerge:</span> Port Forward ve Tüneller Bağlanmıyorsa Ne Yapılmalı?
+            </span>
+            <span style="font-size:11px;color:var(--text-dim);font-weight:500;">▼ Detay</span>
+          </summary>
+          <div class="faq-content">
+            ArgoCD, Grafana veya Prometheus tünelleri açılmıyorsa <b>Port Forwards</b> sekmesinden tünelleri durdurup tekrar başlatabilirsiniz. Şifre almak için <b>ArgoCD Key</b> sekmesinden tek tıkla kopyalayabilirsiniz.
+          </div>
+        </details>
+
+      </div>
+    </div>
+  </div>
+
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let allPods = [];
+  let knownNamespaces = [];
+  let knownServices = [];
+  let chartInstance = null;
+  let hpaChartInstance = null;
+  const chartData = { labels: [], cpu: [], mem: [] };
+  const hpaChartData = { labels: [], replicas: [], cpuLoad: [] };
+
+  function initChart() {
+    const ctx = document.getElementById('metricsChart')?.getContext('2d');
+    if (ctx) {
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: chartData.labels,
+          datasets: [
+            {
+              label: 'CPU Usage (%)',
+              data: chartData.cpu,
+              borderColor: '#38bdf8',
+              backgroundColor: 'rgba(56, 189, 248, 0.1)',
+              fill: true,
+              tension: 0.3
+            },
+            {
+              label: 'Memory Usage (%)',
+              data: chartData.mem,
+              borderColor: '#c084fc',
+              backgroundColor: 'rgba(192, 132, 252, 0.05)',
+              fill: true,
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
+            y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } }
+          },
+          plugins: { legend: { labels: { color: '#94a3b8' } } }
+        }
+      });
+    }
+
+    const hpaCtx = document.getElementById('hpaScaleChart')?.getContext('2d');
+    if (hpaCtx) {
+      hpaChartInstance = new Chart(hpaCtx, {
+        type: 'line',
+        data: {
+          labels: hpaChartData.labels,
+          datasets: [
+            {
+              label: 'Active Pod Replicas Count',
+              data: hpaChartData.replicas,
+              borderColor: '#4ade80',
+              backgroundColor: 'rgba(74, 222, 128, 0.15)',
+              fill: true,
+              tension: 0.2,
+              yAxisID: 'yReplicas'
+            },
+            {
+              label: 'HPA CPU Load Target (%)',
+              data: hpaChartData.cpuLoad,
+              borderColor: '#fbbf24',
+              backgroundColor: 'transparent',
+              borderDash: [4, 4],
+              tension: 0.3,
+              yAxisID: 'yCpu'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
+            yReplicas: {
+              type: 'linear',
+              position: 'left',
+              min: 0,
+              max: 12,
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { color: '#4ade80', stepSize: 1 }
+            },
+            yCpu: {
+              type: 'linear',
+              position: 'right',
+              min: 0,
+              max: 300,
+              grid: { drawOnChartArea: false },
+              ticks: { color: '#fbbf24' }
+            }
+          },
+          plugins: { legend: { labels: { color: '#94a3b8' } } }
+        }
+      });
+    }
+  }
+
+  function pushMetricPoint(cpuRaw, memRaw) {
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const cpuMatch = cpuRaw ? cpuRaw.match(/(\d+)%/) : null;
+    const memMatch = memRaw ? memRaw.match(/(\d+)%/) : null;
+    const cpuVal = cpuMatch ? parseInt(cpuMatch[1]) : 0;
+    const memVal = memMatch ? parseInt(memMatch[1]) : 0;
+
+    chartData.labels.push(time);
+    chartData.cpu.push(cpuVal);
+    chartData.mem.push(memVal);
+
+    if (chartData.labels.length > 20) {
+      chartData.labels.shift();
+      chartData.cpu.shift();
+      chartData.mem.shift();
+    }
+    if (chartInstance) chartInstance.update();
+  }
+
+  function pushHpaPoint(replicas, cpuLoad) {
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    hpaChartData.labels.push(time);
+    hpaChartData.replicas.push(replicas);
+    hpaChartData.cpuLoad.push(cpuLoad);
+
+    if (hpaChartData.labels.length > 20) {
+      hpaChartData.labels.shift();
+      hpaChartData.replicas.shift();
+      hpaChartData.cpuLoad.shift();
+    }
+
+    const sumEl = document.getElementById('hpa-live-summary');
+    if (sumEl) {
+      sumEl.innerHTML = `<b style="color:var(--green)">Replicas: ${replicas} Pods</b> | <b style="color:var(--yellow)">CPU Load: ${cpuLoad}%</b>`;
+    }
+
+    if (hpaChartInstance) hpaChartInstance.update();
+  }
+
+  function nav(id, btn) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    btn.classList.add('active');
+
+    if (id === 'activity') {
+      fetchActivity();
+    }
+    if (id === 'workloads') {
+      loadWorkloads();
+    }
+  }
+
+  function toast(msg, ok = true) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show';
+    el.style.borderColor = ok ? 'rgba(74, 222, 128, 0.3)' : 'rgba(248, 113, 113, 0.3)';
+    setTimeout(() => el.className = 'toast', 3000);
+  }
+
+  function showTerminal(id, text, color) {
+    const el = document.getElementById(id);
+    el.style.color = color || 'var(--green)';
+    el.textContent = text;
+    el.classList.add('show');
+  }
+
+  let appCredentials = {};
+
+  function updateCredentials(creds) {
+    appCredentials = creds;
+    if (creds.argocd && creds.argocd.password) {
+      const el = document.getElementById('cred-argocd-pass');
+      if (el) el.textContent = creds.argocd.password;
+    }
+    if (creds.grafana && creds.grafana.password) {
+      const el = document.getElementById('cred-grafana-pass');
+      if (el) el.textContent = creds.grafana.password;
+    }
+  }
+
+  function copyCred(type) {
+    if (!appCredentials[type]) return;
+    const pw = appCredentials[type].password;
+    navigator.clipboard.writeText(pw);
+    toast(`Copied ${type.toUpperCase()} Password to clipboard!`);
+  }
+
+  // ── WORKLOADS MANAGER ──────────────────────────────
+  async function loadWorkloads() {
+    const body = document.getElementById('workloads-body');
+    if (body) body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:24px;">Loading...</td></tr>';
+    try {
+      const data = await fetch('/api/deployments').then(r => r.json());
+      const deps = data.deployments || [];
+      if (!deps.length) {
+        body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:24px;">No deployments found.</td></tr>';
+        return;
+      }
+      body.innerHTML = deps.map(d => {
+        const [ready, total] = (d.ready || '0/0').split('/');
+        const ok = ready === total;
+        return `<tr>
+          <td><span class="ns-badge">${d.namespace}</span></td>
+          <td style="color:var(--text);font-weight:600;">${d.name}</td>
+          <td><span class="pill ${ok ? 'pill-running' : 'pill-error'}">${d.ready}</span></td>
+          <td>${d.available}</td>
+          <td style="color:var(--text-dim)">${d.age}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button class="btn btn-secondary" style="padding:3px 9px;font-size:13px;line-height:1;"
+                onclick="scaleDeployment('${d.namespace}','${d.name}', -1, this)">−</button>
+              <span id="rep-${d.namespace}-${d.name}" style="font-family:monospace;min-width:20px;text-align:center;">${total || '?'}</span>
+              <button class="btn btn-secondary" style="padding:3px 9px;font-size:13px;line-height:1;"
+                onclick="scaleDeployment('${d.namespace}','${d.name}', 1, this)">+</button>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-primary" style="padding:5px 10px;font-size:11px;"
+                onclick="restartDeployment('${d.namespace}','${d.name}')">↻ Restart</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    } catch(e) {
+      if (body) body.innerHTML = `<tr><td colspan="7" style="color:var(--red);padding:16px;">${e}</td></tr>`;
+    }
+  }
+
+  async function scaleDeployment(namespace, name, delta, btn) {
+    const repEl = document.getElementById(`rep-${namespace}-${name}`);
+    const current = parseInt(repEl?.textContent) || 0;
+    const next = Math.max(0, current + delta);
+    repEl.textContent = '…';
+    const res = await fetch('/api/deployments/scale', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ namespace, name, replicas: next })
+    }).then(r => r.json());
+    if (res.success) {
+      repEl.textContent = next;
+      showWorkloadsTerminal(`✓ ${name} scaled to ${next} replica(s).`, 'var(--green)');
+      toast(`Scaled ${name} → ${next} replicas`);
+    } else {
+      repEl.textContent = current;
+      showWorkloadsTerminal(`✗ Scale failed: ${res.output}`, 'var(--red)');
+      toast(`Scale failed: ${res.output}`, false);
+    }
+  }
+
+  async function restartDeployment(namespace, name) {
+    showWorkloadsTerminal(`Restarting ${name}...`, 'var(--yellow)');
+    const res = await fetch('/api/deployments/restart', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ namespace, name })
+    }).then(r => r.json());
+    if (res.success) {
+      showWorkloadsTerminal(`✓ ${name} rolling restart triggered successfully.`, 'var(--green)');
+      toast(`Restarted ${name}`);
+    } else {
+      showWorkloadsTerminal(`✗ Restart failed: ${res.output}`, 'var(--red)');
+      toast(`Restart failed`, false);
+    }
+  }
+
+  async function deletePod(namespace, name) {
+    if (!confirm(`Delete pod ${name}?\nKubernetes will automatically create a new one.`)) return;
+    const res = await fetch('/api/pods/delete', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ namespace, name })
+    }).then(r => r.json());
+    if (res.success) {
+      showWorkloadsTerminal(`✓ Pod ${name} deleted. A new pod will start shortly.`, 'var(--green)');
+      toast(`Pod ${name} deleted`);
+    } else {
+      showWorkloadsTerminal(`✗ Delete failed: ${res.output}`, 'var(--red)');
+      toast(`Delete failed`, false);
+    }
+  }
+
+  function showWorkloadsTerminal(text, color) {
+    const el = document.getElementById('workloads-terminal');
+    if (!el) return;
+    el.style.color = color || 'var(--green)';
+    el.textContent = text;
+    el.classList.add('show');
+  }
+
+  function renderWorkloadPods(pods) {
+    const body = document.getElementById('workload-pods-body');
+    if (!body) return;
+    if (!pods.length) {
+      body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:24px;">No pods found.</td></tr>';
+      return;
+    }
+    body.innerHTML = pods.map(p => {
+      const statusClass = p.status === 'Running' ? 'pill-running' : p.status === 'Pending' ? 'pill-completed' : 'pill-error';
+      return `<tr>
+        <td><span class="ns-badge">${p.namespace}</span></td>
+        <td style="color:var(--text);font-size:11px;">${p.name}</td>
+        <td>${p.ready}</td>
+        <td><span class="pill ${statusClass}">${p.status}</span></td>
+        <td>${p.restarts}</td>
+        <td>
+          <button class="btn btn-danger" style="padding:4px 10px;font-size:11px;"
+            onclick="deletePod('${p.namespace}','${p.name}')">🗑 Delete</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function refreshAll() {
+    try {
+      const data = await fetch('/api/status').then(r => r.json());
+      document.getElementById('current-ip').textContent = data.ip || 'Unknown';
+      const ns = data.node_stats || {};
+      document.getElementById('node-cpu').textContent = ns.cpu || '—';
+      document.getElementById('node-mem').textContent = ns.memory || '—';
+
+      pushMetricPoint(ns.cpu, ns.memory);
+      updateNamespaces(data.namespaces || []);
+      updateServices(data.services || []);
+      renderPods(data.pods || []);
+      renderWorkloadPods(data.pods || []);
+      updateTunnels(data.tunnels || {});
+      updateCredentials(data.credentials || {});
+      renderRequests(data.onboarding_requests || []);
+    } catch(e) { console.error('refreshAll error:', e); }
+  }
+
+
+  function updateNamespaces(namespaces) {
+    if (JSON.stringify(knownNamespaces) === JSON.stringify(namespaces)) return;
+    knownNamespaces = namespaces;
+
+    const selects = ['activity-ns-select', 'pod-ns-filter', 'hpa-ns-select'];
+    selects.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const current = el.value;
+      let html = id === 'hpa-ns-select' ? '<option value="microgitops">microgitops</option><option value="all">All Namespaces</option>' : '<option value="all">All Namespaces</option>';
+      namespaces.forEach(n => {
+        if (id === 'hpa-ns-select' && (n === 'microgitops' || n === 'all')) return;
+        html += `<option value="${n}">${n}</option>`;
+      });
+      el.innerHTML = html;
+      el.value = current || (id === 'hpa-ns-select' ? 'microgitops' : 'all');
+    });
+  }
+
+  function updateServices(services) {
+    if (JSON.stringify(knownServices) === JSON.stringify(services)) return;
+    knownServices = services;
+
+    const targetSel = document.getElementById('stress-target-select');
+    if (!targetSel) return;
+    const curVal = targetSel.value;
+
+    let opts = `
+      <option value="http://microgitops.local/burn?duration=5">🔥 microgitops-app: CPU Heavy Burn (/burn?duration=5)</option>
+      <option value="http://microgitops.local/health">⚡ microgitops-app: Health Endpoint (/health)</option>
+      <option value="http://microgitops.local/">🌐 microgitops-app: Root App (/)</option>
+    `;
+
+    services.forEach(s => {
+      if (s.name.includes('microgitops')) return;
+      opts += `<option value="http://${s.name}.${s.namespace}.svc.cluster.local/">📦 ${s.namespace} / ${s.name} (${s.type})</option>`;
+    });
+
+    opts += `<option value="custom">✏️ Custom Target URL / Endpoint...</option>`;
+    targetSel.innerHTML = opts;
+    if (curVal) targetSel.value = curVal;
+  }
+
+  async function fetchActivity() {
+    try {
+      const ns = document.getElementById('activity-ns-select')?.value || 'all';
+      const data = await fetch(`/api/activity?ns=${ns}`).then(r => r.json());
+      const tbody = document.getElementById('activity-events-body');
+      if (!data.events || !data.events.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-dim);padding:20px;">No recent cluster events found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.events.reverse().map(e => `
+        <tr>
+          <td>${e.last_seen}</td>
+          <td><span class="ns-badge" style="color:${e.type === 'Warning' ? 'var(--red)' : 'var(--accent)'}">${e.type}</span></td>
+          <td style="font-weight:600;">${e.reason}</td>
+          <td style="color:var(--text-muted);">${e.object}</td>
+          <td style="color:var(--text);">${e.message}</td>
+        </tr>
+      `).join('');
+    } catch (e) { console.error('fetchActivity error:', e); }
+  }
+
+  function renderPods(pods) {
+    allPods = pods;
+    filterPods();
+    renderDashboardPods(pods);
+  }
+
+  function renderDashboardPods(pods) {
+    const tbody = document.getElementById('dash-pod-body');
+    const countEl = document.getElementById('dash-pod-count');
+    if (!pods.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-dim);padding:20px;">Could not connect to cluster.</td></tr>';
+      return;
+    }
+    if (countEl) countEl.textContent = `${pods.length} pods active`;
+
+    const pill = s => {
+      if (s === 'Running') return `<span class="pill pill-running">⬤ Running</span>`;
+      if (s === 'Completed') return `<span class="pill pill-completed">⬤ Completed</span>`;
+      return `<span class="pill pill-error">⬤ ${s}</span>`;
+    };
+
+    tbody.innerHTML = pods.slice(0, 8).map(p => `
+      <tr>
+        <td><span class="ns-badge">${p.namespace}</span></td>
+        <td>${p.name}</td>
+        <td>${p.ready}</td>
+        <td>${pill(p.status)}</td>
+        <td>${p.restarts}</td>
+      </tr>
+    `).join('');
+  }
+
+  function filterPods() {
+    const q = (document.getElementById('pod-search')?.value || '').toLowerCase();
+    const nsFilter = document.getElementById('pod-ns-filter')?.value || 'all';
+    const tbody = document.getElementById('pod-table-body');
+    const countEl = document.getElementById('pod-count');
+
+    if (!allPods.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:var(--text-dim);padding:20px;">Cannot connect to Kubernetes cluster.</td></tr>';
+      if (countEl) countEl.textContent = '';
+      return;
+    }
+
+    const filtered = allPods.filter(p => {
+      const matchNs = nsFilter === 'all' || p.namespace === nsFilter;
+      const matchQ = !q || p.namespace.toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
+      return matchNs && matchQ;
+    });
+
+    if (countEl) countEl.textContent = `${filtered.length} / ${allPods.length} pods`;
+
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="color:var(--text-dim);padding:20px;">No pods match filter criteria.</td></tr>`;
+      return;
+    }
+
+    const pill = s => {
+      if (s === 'Running') return `<span class="pill pill-running">⬤ Running</span>`;
+      if (s === 'Completed') return `<span class="pill pill-completed">⬤ Completed</span>`;
+      return `<span class="pill pill-error">⬤ ${s}</span>`;
+    };
+
+    tbody.innerHTML = filtered.map(p => `
+      <tr>
+        <td><span class="ns-badge">${p.namespace}</span></td>
+        <td>${p.name}</td>
+        <td>${p.ready}</td>
+        <td>${pill(p.status)}</td>
+        <td style="color:${p.restarts !== '0' ? 'var(--yellow)' : 'var(--text-muted)'}">${p.restarts}</td>
+        <td>
+          <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="fetchLogs('${p.namespace}','${p.name}')">View Logs</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function fetchLogs(ns, name) {
+    document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-logs').classList.add('active');
+
+    document.getElementById('log-target-title').textContent = `Console Output — ${name} (${ns})`;
+    showTerminal('logs-terminal', `Fetching logs for ${name}...`, 'var(--text-muted)');
+
+    const data = await fetch(`/api/logs/${ns}/${name}`).then(r => r.json());
+    showTerminal('logs-terminal', data.output || 'No logs available.', data.success ? 'var(--green)' : 'var(--red)');
+  }
+
+  function updateTunnels(tunnels) {
+    ['grafana', 'argocd', 'prometheus'].forEach(name => {
+      const on = tunnels[name];
+      const card = document.getElementById('tunnel-' + name);
+      const sel = document.getElementById('status-' + name);
+      if (!card) return;
+      card.className = 'tunnel-card' + (on ? ' active' : '');
+      sel.className = 'pill ' + (on ? 'pill-running' : 'pill-error');
+      sel.textContent = on ? '⬤ Running' : '⬤ Stopped';
+    });
+  }
+
+  function toggleCustomTarget() {
+    const sel = document.getElementById('stress-target-select').value;
+    const wrap = document.getElementById('custom-target-wrap');
+    wrap.style.display = sel === 'custom' ? 'block' : 'none';
+  }
+
+  async function updateIP() {
+    const ip = document.getElementById('new-ip-input').value.trim();
+    if (!ip) { toast('Please enter a valid IP address.', false); return; }
+    showTerminal('ip-terminal', 'Updating configuration...', 'var(--text-muted)');
+    const data = await fetch('/api/update-ip', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ip})
+    }).then(r => r.json());
+    showTerminal('ip-terminal', data.output, data.success ? 'var(--green)' : 'var(--red)');
+    if (data.success) { toast('AWS IP successfully updated'); refreshAll(); }
+  }
+
+  async function startTunnel(name) {
+    showTerminal('tunnel-terminal', `Starting ${name} tunnel...`, 'var(--text-muted)');
+    const data = await fetch(`/api/tunnel/${name}`, { method: 'POST' }).then(r => r.json());
+    showTerminal('tunnel-terminal', data.output, data.success ? 'var(--green)' : 'var(--red)');
+    if (data.success) {
+      const urls = { grafana: 'http://localhost:3000', argocd: 'https://localhost:8080', prometheus: 'http://localhost:9090' };
+      setTimeout(() => window.open(urls[name], '_blank'), 1000);
+      toast(`${name} tunnel started`);
+    }
+    await refreshAll();
+  }
+
+  async function stopAllTunnels() {
+    const data = await fetch('/api/tunnel/stop-all', { method: 'POST' }).then(r => r.json());
+    showTerminal('tunnel-terminal', data.output);
+    toast('Tunnels stopped');
+    await refreshAll();
+  }
+
+  async function fetchArgoCDPw() {
+    showTerminal('argocd-pw-terminal', 'Fetching password from cluster secret...', 'var(--text-muted)');
+    const data = await fetch('/api/argocd-password').then(r => r.json());
+    showTerminal('argocd-pw-terminal', data.success ? '🔑 ArgoCD Admin Password:\n\n' + data.output : data.output, data.success ? 'var(--green)' : 'var(--red)');
+  }
+
+  async function submitOnboarding() {
+    const body = {
+      app_name: document.getElementById('req-app-name').value,
+      domain: document.getElementById('req-domain').value,
+      owner: document.getElementById('req-owner').value,
+      notes: document.getElementById('req-notes').value,
+    };
+    const data = await fetch('/api/onboarding/submit', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+    }).then(r => r.json());
+    toast(data.output, data.success);
+    await refreshAll();
+  }
+
+  function renderRequests(reqs) {
+    const el = document.getElementById('requests-list');
+    if (!reqs.length) {
+      el.innerHTML = '<span style="color:var(--text-dim);">No pending requests.</span>';
+      return;
+    }
+    el.innerHTML = reqs.map(r => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-weight:600;">#${r.id} — ${r.app_name} (${r.domain})</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${r.owner} · ${r.notes || 'No notes'}</div>
+        </div>
+        ${r.status.includes('Pending') ? `<button class="btn btn-primary" style="font-size:11px;padding:4px 12px;" onclick="approveReq(${r.id})">Approve</button>` : `<span class="pill pill-running">${r.status}</span>`}
+      </div>
+    `).join('');
+  }
+
+  async function approveReq(id) {
+    const data = await fetch(`/api/onboarding/approve/${id}`, { method: 'POST' }).then(r => r.json());
+    toast(data.output, data.success);
+    await refreshAll();
+  }
+
+  async function deployApp() {
+    showTerminal('deploy-terminal', 'Running Helm upgrade release...', 'var(--text-muted)');
+    const data = await fetch('/api/deploy', { method: 'POST' }).then(r => r.json());
+    showTerminal('deploy-terminal', data.output, data.success ? 'var(--green)' : 'var(--red)');
+    toast(data.success ? 'Deploy completed' : 'Deploy failed', data.success);
+  }
+
+  async function restartPods() {
+    showTerminal('deploy-terminal', 'Initiating zero-downtime rollout restart...', 'var(--text-muted)');
+    const data = await fetch('/api/cluster/restart-pods', { method: 'POST' }).then(r => r.json());
+    showTerminal('deploy-terminal', data.output, data.success ? 'var(--green)' : 'var(--red)');
+    toast(data.success ? 'Rollout initiated' : 'Rollout failed', data.success);
+  }
+
+  async function fetchHpaStatus() {
+    try {
+      const ns = document.getElementById('hpa-ns-select')?.value || 'microgitops';
+      const data = await fetch(`/api/hpa-status?ns=${ns}`).then(r => r.json());
+      const el = document.getElementById('hpa-terminal');
+      if (el) el.textContent = data.output || 'No HPA data.';
+
+      if (data.metrics) {
+        pushHpaPoint(data.metrics.replicas || 0, data.metrics.cpu_percent || 0);
+      }
+    } catch (e) { console.error('fetchHpaStatus error:', e); }
+  }
+
+  async function stressStart() {
+    let sel = document.getElementById('stress-target-select').value;
+    if (sel === 'custom') {
+      sel = document.getElementById('stress-custom-url').value.trim();
+    }
+    const connections = parseInt(document.getElementById('stress-connections-select').value) || 50;
+
+    const data = await fetch('/api/stress/start', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ target: sel, connections: connections })
+    }).then(r => r.json());
+
+    showTerminal('stress-terminal', data.output, data.success ? 'var(--green)' : 'var(--red)');
+    toast(data.success ? 'Stress test initiated' : data.output, data.success);
+    fetchHpaStatus();
+    await refreshAll();
+  }
+
+  async function stressStop() {
+    const data = await fetch('/api/stress/stop', { method: 'POST' }).then(r => r.json());
+    showTerminal('stress-terminal', data.output);
+    toast('Stress test stopped');
+    fetchHpaStatus();
+    await refreshAll();
+  }
+
+  initChart();
+  refreshAll();
+  fetchHpaStatus();
+  setInterval(refreshAll, 5000);
+  setInterval(fetchHpaStatus, 4000);
+</script>
+</body>
+</html>

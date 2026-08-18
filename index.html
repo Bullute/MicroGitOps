@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MicroGitOps — Web Altyapısı, Otomatik ve Güvenli</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #080c18;
+      --surface: #0f1629;
+      --surface2: #141d35;
+      --border: #1e2d45;
+      --accent: #6366f1;
+      --accent2: #22d3ee;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(8, 12, 24, 0.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2.5rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-weight: 800;
+      font-size: 1.1rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 6rem 2rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 900px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 100px;
+      padding: 0.4rem 1.2rem;
+      font-size: 0.8rem;
+      color: #a5b4fc;
+      margin-bottom: 1.5rem;
+    }
+
+    .badge span {
+      width: 7px;
+      height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+    }
+
+    .gradient {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 640px;
+      line-height: 1.8;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #818cf8);
+      color: #fff;
+      border: none;
+      padding: 0.9rem 2.2rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.9rem 2.2rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.06);
+    }
+
+    /* STATS */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 3.5rem;
+      flex-wrap: wrap;
+      margin-top: 4rem;
+      padding-top: 2.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 2.3rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    /* SECTIONS */
+    .section {
+      padding: 5.5rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-bg {
+      background: var(--surface);
+    }
+
+    .section-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 5.5rem 2rem;
+    }
+
+    .section-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 620px;
+      line-height: 1.8;
+      margin-bottom: 3rem;
+    }
+
+    /* PROBLEM CARDS */
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .problem-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem;
+    }
+
+    .problem-card .icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .problem-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    .problem-card p {
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* SOLUTION STEPS */
+    .solution-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .solution-step {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem 1.75rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+      transition: border-color 0.3s;
+    }
+
+    .solution-step:hover {
+      border-color: var(--accent);
+    }
+
+    .step-icon {
+      width: 52px;
+      height: 52px;
+      min-width: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .step-body h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .step-body p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* FEATURE CARDS */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .feat-card:hover {
+      border-color: var(--accent2);
+      transform: translateY(-4px);
+    }
+
+    .feat-card .icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+
+    .feat-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .feat-card p {
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .feat-card .tag {
+      display: inline-block;
+      margin-top: 0.75rem;
+      font-size: 0.7rem;
+      background: rgba(34, 211, 238, 0.1);
+      color: var(--accent2);
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    /* COMPARE */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .compare-table th {
+      background: var(--surface2);
+      padding: 1rem 1.25rem;
+      text-align: left;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .compare-table td {
+      padding: 1rem 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .compare-table tr:hover td {
+      background: rgba(99, 102, 241, 0.04);
+    }
+
+    .yes {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .no {
+      color: var(--red);
+      font-weight: 600;
+    }
+
+    .partial {
+      color: var(--yellow);
+      font-weight: 600;
+    }
+
+    /* BENCH */
+    .bench-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .bench-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+
+    .bench-card .big {
+      font-size: 2.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--green), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .bench-card .label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+      line-height: 1.5;
+    }
+
+    /* DEMO */
+    .demo-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .demo-step {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.4rem 1.6rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .demo-num {
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 0.9rem;
+    }
+
+    .demo-step h4 {
+      font-size: 0.98rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+
+    .demo-step p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* SCREENSHOTS */
+    .screenshots {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .ss-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .ss-card img {
+      width: 100%;
+      display: block;
+    }
+
+    .ss-card .caption {
+      padding: 1rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .ss-card .caption strong {
+      color: var(--text);
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    /* QUOTE */
+    .quote-box {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(34, 211, 238, 0.06));
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 16px;
+      padding: 2rem 2.5rem;
+      text-align: center;
+    }
+
+    .quote-box p {
+      font-size: 1.15rem;
+      line-height: 1.8;
+      color: var(--text);
+      font-style: italic;
+    }
+
+    .quote-box .author {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+
+    .tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+    }
+
+    .tech-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.3rem 0.85rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.4;
+      }
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero>* {
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .hero>*:nth-child(1) {
+      animation-delay: 0.1s;
+    }
+
+    .hero>*:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .hero>*:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    .hero>*:nth-child(4) {
+      animation-delay: 0.4s;
+    }
+
+    .hero>*:nth-child(5) {
+      animation-delay: 0.5s;
+    }
+
+    @media (max-width: 640px) {
+      .screenshots {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .stats {
+        gap: 2rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav>
+    <div class="nav-logo">⚡ MicroGitOps</div>
+    <div class="nav-links">
+      <a href="#sorun">Problem</a>
+      <a href="#cozum">Çözüm</a>
+      <a href="#ozellikler">Özellikler</a>
+      <a href="#rakamlar">Rakamlar</a>
+      <a href="#demo">Demo</a>
+    </div>
+  </nav>
+
+  <!-- ─── HERO ─────────────────────────────────────── -->
+  <div class="hero">
+    <div class="badge"><span></span> Canlı Sistem · AWS Üzerinde Çalışıyor</div>
+    <h1>Web siteniz hiç<br><span class="gradient">çökmeden</span> çalışsın.</h1>
+    <p>İster 10 kişi girsin, ister 100.000 kişi — sistemimiz yükü otomatik olarak taşır. Siz sadece işinize odaklanın,
+      teknik detayların tamamını biz hallediyoruz.</p>
+    <div class="hero-btns">
+      <a href="#cozum" class="btn-primary">Nasıl Çalışır? →</a>
+      <a href="#rakamlar" class="btn-outline">Rakamlar & Sonuçlar</a>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num">%0</div>
+        <div class="stat-label">Hata Oranı</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">Sıfır</div>
+        <div class="stat-label">Site Kesintisi</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">5×</div>
+        <div class="stat-label">Daha Hızlı Güncelleme</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">7/24</div>
+        <div class="stat-label">Otomatik İzleme</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── PROBLEM ───────────────────────────────────── -->
+  <div class="section-bg">
+    <div class="section-inner" id="sorun">
+      <div class="section-tag">Problem</div>
+      <div class="section-title">Klasik yöntemde ne ters gider?</div>
+      <div class="section-sub">Pek çok web sitesi hâlâ eski, manuel yöntemlerle yönetiliyor. Bu da hem müşteriyi hem
+        geliştiriciyi yoruyor.</div>
+      <div class="problem-grid">
+        <div class="problem-card">
+          <div class="icon">💥</div>
+          <h3>Site çöküyor, kimse fark etmiyor</h3>
+          <p>Sunucu dolup taşıyor, site "503 Hata" veriyor. Siz habersizsiniz; ziyaretçiler gitmiş bile.</p>
+        </div>
+        <div class="problem-card">
+          <div class="icon">🐌</div>
+          <h3>Her güncelleme saatler alıyor</h3>
+          <p>Küçük bir değişiklik için teknik ekip saatlerce uğraşıyor. Bu sırada site ya kapalı ya da eski hâliyle
+            yayında.</p>
+        </div>
+        <div class="problem-card">
+          <div class="icon">😰</div>
+          <h3>Kampanya gününde en çok trafik, en yüksek risk</h3>
+          <p>Tam en kritik anda — indirim, lansman, duyuru — sunucular yükü kaldıramıyor ve siteniz yavaşlıyor ya da
+            çöküyor.</p>
+        </div>
+        <div class="problem-card">
+          <div class="icon">🔒</div>
+          <h3>Güvenlik açıkları fark edilmiyor</h3>
+          <p>Eski yazılım bileşenleri güvenlik açığı barındırıyor; ama kimse kontrol etmiyor. Saldırılar sessizce
+            gerçekleşiyor.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SOLUTION ──────────────────────────────────── -->
+  <div class="section" id="cozum">
+    <div class="section-tag">Çözüm</div>
+    <div class="section-title">Sistemimiz bunların hepsini otomatik halleder</div>
+    <div class="section-sub">Bir değişiklik yaptığınızda sistem devreye girer ve her şeyi sırasıyla, hatasız şekilde
+      yönetir.</div>
+    <div class="solution-flow">
+      <div class="solution-step">
+        <div class="step-icon" style="background: rgba(99,102,241,0.15);">✏️</div>
+        <div class="step-body">
+          <h3>Siz sadece değişikliği yapın</h3>
+          <p>Bir metin değişikliği, yeni bir sayfа, fiyat güncelleme — ne olursa olsun. Kaydedin ve gönderin.</p>
+        </div>
+      </div>
+      <div class="solution-step">
+        <div class="step-icon" style="background: rgba(34,211,238,0.1);">🔍</div>
+        <div class="step-body">
+          <h3>Sistem otomatik kontrol eder</h3>
+          <p>Değişikliğiniz alındığı anda sistem hataları, güvenlik açıklarını ve sorunları test eder. Sorun varsa sizi
+            uyarır — yayına geçmeden önce.</p>
+        </div>
+      </div>
+      <div class="solution-step">
+        <div class="step-icon" style="background: rgba(16,185,129,0.1);">🚀</div>
+        <div class="step-body">
+          <h3>Canlıya kesintisiz geçer</h3>
+          <p>Her şey yolundaysa değişiklik saniyeler içinde canlı sisteme aktarılır. Ziyaretçiler hiçbir şeyin
+            değiştiğini fark etmez — site hiç durmaz.</p>
+        </div>
+      </div>
+      <div class="solution-step">
+        <div class="step-icon" style="background: rgba(245,158,11,0.12);">📊</div>
+        <div class="step-body">
+          <h3>7/24 izler ve kendini ayarlar</h3>
+          <p>Trafik arttığında sistem kapasiteyi otomatik büyütür. Saatte 100 ziyaretçi de gelsin, 100.000 de — her
+            zaman aynı hız ve kararlılıkla çalışır.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── FEATURES ──────────────────────────────────── -->
+  <div class="section-bg">
+    <div class="section-inner" id="ozellikler">
+      <div class="section-tag">Özellikler</div>
+      <div class="section-title">Arka planda neler çalışıyor?</div>
+      <div class="section-sub">Teknik detaylara girmeden şunu bilin: sisteminiz mühendislerin yıllarca geliştirdiği en
+        güvenilir altyapılar üzerinde çalışıyor.</div>
+      <div class="feat-grid">
+        <div class="feat-card">
+          <div class="icon" style="background: rgba(99,102,241,0.15);">🔄</div>
+          <h3>Otomatik Güncelleme Sistemi</h3>
+          <p>Siz değişiklik yaptığınızda sistem bunu alır, test eder ve yayına verir. Elle müdahale yok, bekleme yok.
+          </p>
+          <span class="tag">Sıfır Kesinti</span>
+        </div>
+        <div class="feat-card">
+          <div class="icon" style="background: rgba(34,211,238,0.1);">📈</div>
+          <h3>Otomatik Kapasite Ayarlama</h3>
+          <p>Sitenize aniden çok fazla ziyaretçi gelirse sistem arka planda daha fazla kaynak açar. Yük bitince kapatır.
+            Siz fark etmezsiniz bile.</p>
+          <span class="tag">2'den 10 Sunucuya Anında</span>
+        </div>
+        <div class="feat-card">
+          <div class="icon" style="background: rgba(16,185,129,0.1);">🔒</div>
+          <h3>Otomatik Güvenlik Kontrolü</h3>
+          <p>Her değişiklikte bilinen güvenlik açıkları otomatik taranır. Sorun bulunursa yayına izin verilmez.</p>
+          <span class="tag">Her Güncellemede Tarama</span>
+        </div>
+        <div class="feat-card">
+          <div class="icon" style="background: rgba(245,158,11,0.12);">👁️</div>
+          <h3>Canlı İzleme Paneli</h3>
+          <p>Sitenizin ne kadar kaynak kullandığını, kaç ziyaretçi olduğunu ve sistemin sağlık durumunu tek ekrandan
+            anlık izleyebilirsiniz.</p>
+          <span class="tag">Gerçek Zamanlı Grafik</span>
+        </div>
+        <div class="feat-card">
+          <div class="icon" style="background: rgba(239,68,68,0.1);">↩️</div>
+          <h3>Anında Geri Alma</h3>
+          <p>Bir güncelleme beklenmedik bir sorun çıkardıysa birkaç saniye içinde bir önceki çalışan sürüme geri
+            dönebilirsiniz.</p>
+          <span class="tag">30 Saniyede Geri Dön</span>
+        </div>
+        <div class="feat-card">
+          <div class="icon" style="background: rgba(99,102,241,0.15);">🌐</div>
+          <h3>Bulut Altyapısı</h3>
+          <p>Sistem dünyanın en büyük bulut sağlayıcıları üzerinde çalışır. Farklı bir sağlayıcıya geçmek isteyensiniz
+            bile — sistem bağımsız çalışır.</p>
+          <span class="tag">AWS · Google Cloud · Herhangi</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── NUMBERS ────────────────────────────────────── -->
+  <div class="section" id="rakamlar">
+    <div class="section-tag">Kanıtlanmış Sonuçlar</div>
+    <div class="section-title">Rakamlar konuşuyor</div>
+    <div class="section-sub">Gerçek yük testlerinden elde edilen sonuçlar. Simülasyon değil, gerçek trafik.</div>
+
+    <div class="bench-row">
+      <div class="bench-card">
+        <div class="big">1.500</div>
+        <div class="label">Saniyede eş zamanlı işlenen istek (günde ~100 milyon işlem)</div>
+      </div>
+      <div class="bench-card">
+        <div class="big">67ms</div>
+        <div class="label">Ortalama yanıt süresi — insan gözünün bile fark etmeyeceği hız</div>
+      </div>
+      <div class="bench-card">
+        <div class="big">%0</div>
+        <div class="label">Hata oranı — yoğun stres testi boyunca tek bir kayıp yok</div>
+      </div>
+      <div class="bench-card">
+        <div class="big">5×</div>
+        <div class="label">Daha hızlı canlıya alma — elle yapılana kıyasla</div>
+      </div>
+    </div>
+
+    <div class="quote-box">
+      <p>"Saniyede 1.500 istek demek, günde yaklaşık 100 milyon işlem yapılabiliyor. Bu, Türkiye'nin önde gelen orta
+        büyüklükteki e-ticaret platformlarının günlük tüm trafiğine eşdeğer — tek bir sistem üzerinde."</p>
+      <div class="author">— Gerçek yük testi sonuçları, AWS EC2 üzerinde</div>
+    </div>
+  </div>
+
+  <!-- ─── COMPARE ────────────────────────────────────── -->
+  <div class="section-bg">
+    <div class="section-inner">
+      <div class="section-tag">Karşılaştırma</div>
+      <div class="section-title">Neden bu sistem, klasik yaklaşımdan farklı?</div>
+      <div class="section-sub">Teknik detaylara girmeden: nelerin otomatik geldiği, nelerin olmadığı.</div>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Özellik</th>
+            <th>Klasik Sunucu Yönetimi</th>
+            <th>Hazır Platformlar</th>
+            <th>MicroGitOps</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Güncelleme otomatik mi?</td>
+            <td class="no">✗ Elle yapılır</td>
+            <td class="partial">~ Kısmen</td>
+            <td class="yes">✓ Tam otomatik</td>
+          </tr>
+          <tr>
+            <td>Güvenlik taraması var mı?</td>
+            <td class="no">✗ Yok</td>
+            <td class="partial">~ Sınırlı</td>
+            <td class="yes">✓ Her güncellemede</td>
+          </tr>
+          <tr>
+            <td>Trafik artınca ne olur?</td>
+            <td class="no">✗ Site yavaşlar / çöker</td>
+            <td class="partial">~ Ücret karşılığı</td>
+            <td class="yes">✓ Otomatik büyür</td>
+          </tr>
+          <tr>
+            <td>Sorun olunca geri dönüş?</td>
+            <td class="no">✗ Zor ve riskli</td>
+            <td class="partial">~ Kısıtlı</td>
+            <td class="yes">✓ 30 saniyede</td>
+          </tr>
+          <tr>
+            <td>Canlı izleme var mı?</td>
+            <td class="no">✗ Yok</td>
+            <td class="partial">~ Temel düzey</td>
+            <td class="yes">✓ Anlık grafikler</td>
+          </tr>
+          <tr>
+            <td>Platforma bağımlı mısınız?</td>
+            <td class="partial">~ Sunucuya bağlı</td>
+            <td class="no">✗ Evet, yüksek risk</td>
+            <td class="yes">✓ Bağımsız</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ─── LIVE DEMO ─────────────────────────────────── -->
+  <div class="section" id="demo">
+    <div class="section-tag">Canlı Demo</div>
+    <div class="section-title">Sistemi gözlerinizle görün</div>
+    <div class="section-sub">Aşağıdaki adımları sunum sırasında gerçek sistem üzerinde canlı olarak gösterebiliriz.
+    </div>
+    <div class="demo-steps">
+      <div class="demo-step">
+        <div class="demo-num">1</div>
+        <div>
+          <h4>Kontrol Paneli — Her Şey Tek Ekranda</h4>
+          <p>Sistemin anlık durumunu, kaç sunucunun çalıştığını, ne kadar kaynak harcandığını ve tüm etkinlikleri tek
+            bir yönetim ekranından gösteriyoruz.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-num">2</div>
+        <div>
+          <h4>Yük Testi — Binlerce Eş Zamanlı Ziyaretçiyi Simüle Ediyoruz</h4>
+          <p>Sisteme aniden büyük bir yük bindiriyoruz. Kapasitenin otomatik olarak nasıl genişlediğini, sistemin hiç
+            duraksamadan çalışmaya devam ettiğini gerçek zamanlı grafik üzerinde izliyoruz.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-num">3</div>
+        <div>
+          <h4>İzleme Grafikleri — Anlık Sağlık Durumu</h4>
+          <p>Sunucunun ne kadarının kullanıldığını, yanıt sürelerini ve sistemin genel sağlığını anlık grafiklerle
+            gösteriyoruz. Sorun oluşmadan önce fark edebilirsiniz.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div style="font-size: 1.8rem; margin-bottom: 0.75rem;">⚡</div>
+    <div
+      style="font-weight: 800; font-size: 1.05rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+      MicroGitOps Platform</div>
+    <div>Otomatik, Güvenli ve Kesintisiz Web Altyapısı</div>
+    <div class="tech-stack">
+      <span class="tech-pill">AWS Cloud</span>
+      <span class="tech-pill">Kubernetes</span>
+      <span class="tech-pill">Otomatik Ölçekleme</span>
+      <span class="tech-pill">Güvenlik Tarama</span>
+      <span class="tech-pill">Canlı İzleme</span>
+      <span class="tech-pill">GitOps</span>
+      <span class="tech-pill">Sıfır Kesinti Deploy</span>
+    </div>
+  </footer>
+
+</body>
+
+</html>

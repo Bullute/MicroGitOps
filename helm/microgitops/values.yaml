@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: microgitops
-  tag: v1
+  tag: v2
   pullPolicy: IfNotPresent
 
 service:
