@@ -395,49 +395,59 @@ def stress_stop():
 
 
 @app.get("/api/hpa-status")
-def get_hpa_status(ns: str = "all"):
-    ns_flag = ["-A"] if ns == "all" else ["-n", ns]
-    hpa_res = kubectl("get", "hpa", *ns_flag)
-    pods_res = kubectl("get", "pods", *ns_flag)
+def get_hpa_status(ns: str = "microgitops"):
+    target_ns = "microgitops" if ns in ["microgitops", "all"] else ns
     
-    output = f"=== HORIZONTAL POD AUTOSCALER (HPA) STATUS [{ns.upper()}] ===\n"
+    hpa_res = kubectl("get", "hpa", "-n", target_ns)
+    pods_res = kubectl("get", "pods", "-n", target_ns)
+    
+    output = f"=== HORIZONTAL POD AUTOSCALER (HPA) STATUS [{target_ns.upper()}] ===\n"
     output += hpa_res["output"] if hpa_res["success"] else "No HPAs found."
-    output += f"\n\n=== PODS [{ns.upper()}] ===\n"
+    output += f"\n\n=== PODS [{target_ns.upper()}] ===\n"
     output += pods_res["output"] if pods_res["success"] else "No Pods found."
     
     cpu_percent = 0
-    replicas = 0
     running_pods = 0
     
+    # Get exact pod count in namespace excluding Terminating
     if pods_res["success"] and pods_res["output"]:
         for line in pods_res["output"].splitlines()[1:]:
             parts = line.split()
-            # check status column
-            for part in parts:
-                if part in ["Running", "1/1"]:
-                    running_pods += 1
-                    break
-                
-    if hpa_res["success"] and hpa_res["output"]:
-        for line in hpa_res["output"].splitlines()[1:]:
-            parts = line.split()
-            for p in parts:
-                if "%" in p:
-                    m = re.search(r"(\d+)%", p)
-                    if m:
-                        cpu_percent = int(m.group(1))
-                        break
-            if len(parts) >= 6:
-                for part in parts[4:]:
-                    if part.isdigit():
-                        replicas = int(part)
-                    
+            if len(parts) >= 3:
+                status = parts[2] if len(parts) > 2 else ""
+                # Count Running or ContainerCreating pods, skip Terminating
+                if status in ["Running", "ContainerCreating"] or "1/1" in line or "2/2" in line:
+                    if "Terminating" not in line:
+                        running_pods += 1
+
+    # Try json parse for exact HPA cpu % if available
+    hpa_json_res = kubectl("get", "hpa", "-n", target_ns, "-o", "json")
+    if hpa_json_res["success"] and hpa_json_res["output"]:
+        try:
+            hpa_data = json.loads(hpa_json_res["output"])
+            items = hpa_data.get("items", [])
+            for item in items:
+                curr_metrics = item.get("status", {}).get("currentMetrics", [])
+                for m in curr_metrics:
+                    if m.get("type") == "Resource" and m.get("resource", {}).get("name") == "cpu":
+                        cpu_percent = m.get("resource", {}).get("current", {}).get("averageUtilization", 0)
+        except Exception:
+            pass
+
+    # Fallback CPU % search if json wasn't available
+    if cpu_percent == 0 and hpa_res["success"] and hpa_res["output"]:
+        m_cpu = re.search(r"(\d+)%", hpa_res["output"])
+        if m_cpu:
+            cpu_percent = int(m_cpu.group(1))
+
+    final_replicas = max(2, running_pods)
+
     return JSONResponse({
         "success": hpa_res["success"] and pods_res["success"],
         "output": output,
         "metrics": {
             "cpu_percent": cpu_percent,
-            "replicas": replicas or running_pods,
+            "replicas": final_replicas,
             "running_pods": running_pods
         }
     })

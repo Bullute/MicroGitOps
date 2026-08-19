@@ -269,6 +269,8 @@ textarea.input { min-height: 90px; resize: vertical; }
   min-height: 60px;
   max-height: 280px;
   overflow-y: auto;
+  overflow-x: auto;
+  word-break: break-all;
   white-space: pre-wrap;
   line-height: 1.6;
   display: none;
@@ -788,7 +790,7 @@ summary.faq-summary::-webkit-details-marker { display: none; }
         <div style="font-size:11px;color:var(--text-muted);" id="hpa-live-summary">Replicas: — | Load: —</div>
       </div>
       <div class="card-body">
-        <div style="height: 180px;">
+        <div style="height: 260px; position: relative; width: 100%;">
           <canvas id="hpaScaleChart"></canvas>
         </div>
       </div>
@@ -1037,7 +1039,7 @@ summary.faq-summary::-webkit-details-marker { display: none; }
               type: 'linear',
               position: 'right',
               min: 0,
-              max: 300,
+              max: 100,
               grid: { drawOnChartArea: false },
               ticks: { color: '#fbbf24' }
             }
@@ -1069,9 +1071,10 @@ summary.faq-summary::-webkit-details-marker { display: none; }
 
   function pushHpaPoint(replicas, cpuLoad) {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const clampedCpu = Math.min(100, Math.max(0, cpuLoad));
     hpaChartData.labels.push(time);
     hpaChartData.replicas.push(replicas);
-    hpaChartData.cpuLoad.push(cpuLoad);
+    hpaChartData.cpuLoad.push(clampedCpu);
 
     if (hpaChartData.labels.length > 20) {
       hpaChartData.labels.shift();

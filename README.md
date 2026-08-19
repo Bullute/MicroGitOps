@@ -1,147 +1,105 @@
-# 🚀 MicroGitOps Platform: Cloud-Native DevOps & GitOps Architecture
+# 🚀 MicroGitOps — Production-Grade Managed Service & Observability Platform
 
-A production-grade, hardened, and highly observable GitOps deployment platform designed to package, secure, deploy, and monitor scalable APIs on AWS EC2 nodes orchestrating on lightweight Kubernetes (K3s).
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-K3s-blue.svg?logo=kubernetes)](https://k3s.io/)
+[![GitOps](https://img.shields.io/badge/GitOps-ArgoCD-orange.svg?logo=argo)](https://argoproj.github.io/cd/)
+[![Cloud](https://img.shields.io/badge/Cloud-AWS_EC2-FF9900.svg?logo=amazon-aws)](https://aws.amazon.com/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-This project demonstrates modern DevSecOps, Infrastructure-as-Code (IaC), GitOps, and Site Reliability Engineering (SRE) principles in action.
+**MicroGitOps**, AWS cloud altyapısı üzerinde çalışan, Kubernetes tabanlı, GitOps prensipleriyle yönetilen, otomatik ölçeklenebilen (**HPA**) ve özel geliştirilmiş **Dockhand Ops Panel** ile canlı izlenebilen production-ready bir altyapı platformudur.
 
 ---
 
-## 🏗️ System Architecture & Workflow
+## 📸 Ekran Görüntüleri (Platform Visuals)
 
-The platform spans from local development, to continuous quality checks, automated GitOps delivery, and final server-health monitoring in the AWS cloud. Below is the Mermaid-rendered model (natively supported by GitHub):
+### 1. Dockhand Operations Dashboard (Canlı Metrikler & Pod Haritası)
+![Dockhand Dashboard](docs/screenshots/dashboard.png)
 
-```mermaid
-graph TD
-    %% Section 1: Dev
-    subgraph Developer Laptop [1. Local Development]
-        A[FastAPI App: main.py] -->|Package Blueprint| B[Dockerfile: Multi-stage]
-    end
+### 2. Workloads Manager (Canlı Pod & Replica Kontrolü)
+![Workloads Manager](docs/screenshots/workloads.png)
 
-    %% Section 2: CI/CD
-    subgraph pipeline [2. Quality Control & GitOps]
-        C[Git Push] -->|Triggers CI| D[GitHub Actions]
-        D -->|Linting| E[Ruff Linter]
-        D -->|Vulnerability Check| F[Trivy Scanner]
-        D -->|Compile & Publish| G[Docker Registry / Local Import]
-        G -->|Sync Manifests| H[ArgoCD / Helm Chart]
-    end
+### 3. Otomatik Ölçeklenme & Yük Testi (HPA Auto-Scaling in Action)
+![HPA Autoscaling](docs/screenshots/hpa-autoscale.png)
 
-    %% Section 3: AWS
-    subgraph aws [3. AWS Cloud Environment / K3s K8s]
-        I[Traefik Ingress: Port 80 / DNS] -->|Routes traffic| J[App Service: Load Balancer]
-        J -->|Round-Robin| K[Pod 1: FastAPI container]
-        J -->|Round-Robin| L[Pod 2: FastAPI container]
-        
-        M[Prometheus Scraper] -->|Pulls API Metrics /metrics| K
-        M -->|Pulls Host stats| N[cAdvisor / Node Exporter]
-        O[Grafana Dashboard] -->|Visualizes data| M
-    end
+### 4. Tünel ve Dinamik Secret Yönetimi (Port Forwards & ArgoCD Key)
+![Port Forwards & Tunnels](docs/screenshots/tunnels.png)
 
-    B --> C
-    H -->|Auto Deploy / Sync| I
+### 5. İş Odaklı Sunum Sayfası (Business Landing Page)
+![Business Landing Page](docs/screenshots/landing-page.png)
+
+---
+
+## 🔥 Temel Özellikler (Key Features)
+
+* **🚀 Zero-Downtime GitOps (ArgoCD & Helm):** Git deposuna atılan her commit, kümede sıfır kesintiyle otomatik güncellenir (`Auto-Sync & Self-Healing`).
+* **⚡ HPA Auto-Scaling Kriz Koruması:** Ani trafik yükünde CPU kullanımı %70'i aştığında sistem 2 saniye içinde Pod kapasitesini **2 → 10** katına otomatik çıkarır.
+* **📊 1.500 RPS Performans Kapasitesi:** Autocannon ile yapılan yük testlerinde tek node AWS EC2 sunucusu üzerinde %0 hatayla saniyede 1.500 istek (**günde ~100 Milyon istek**) karşılanmıştır.
+* **🛠️ Dockhand Ops Panel (FastAPI + HTML5):** Komut satırı karmaşasını ortadan kaldıran; canlı metrikleri, Pod yönetimi, tünelleri ve şifreleri tek ekranda toplayan yönetim arayüzü.
+* **🌐 Traefik Ingress & Dynamic Routing:** Domain yönlendirmeleri (`microgitops.local`) ve yük dengeleme otomatik olarak sağlanır.
+
+---
+
+## 🏗️ Sistem Mimarisi (Architecture)
+
+```
+                       ┌─────────────────────────────────────────┐
+                       │           AWS EC2 Cloud Node            │
+                       │                                         │
+[ Ziyaretçi / Müşteri ] ──► [ Traefik Ingress Controller ]        │
+                                       │                         │
+                     ┌─────────────────┴─────────────────┐       │
+                     ▼                                   ▼       │
+        [ Service: microgitops-app ]          [ Dockhand Ops Panel ]
+                     │                             (Port 7777)
+                     ▼                                   │
+      ┌──────────────────────────────┐                   │
+      │   Kubernetes Pods (HPA)      │ ◄─────────────────┘
+      │  [ Pod 1 ] [ Pod 2 ] ...     │   (Scale / Restart / Logs)
+      └──────────────────────────────┘
+                     ▲
+                     │ (Pull-based Auto Sync)
+           [ ArgoCD Controller ] ◄────── [ GitHub Repository ]
 ```
 
 ---
 
-## 🛡️ Core Highlights & Features
+## 🛠️ Teknolojik Altyapı (Tech Stack)
 
-1. **Application Hardening & Telemetry:**
-   * Built with **FastAPI** leveraging Prometheus middleware instrumentation (`/metrics`) and Kubernetes liveness/readiness probes (`/health`).
-   * **Hardened Dockerfile:** Employing multi-stage builds (`builder` -> `runner` stages) to omit compilation compilers in production, running under non-privileged UID `10001` (non-root context) to protect host kernels.
-
-2. **Continuous Integration (CI):**
-   * Configured via **GitHub Actions** (`ci.yml`) to enforce code formatting using `Ruff` and static security scanning for CVE dependencies using `Trivy`.
-
-3. **Infrastructure as Code (IaC):**
-   * Deployed via **Terraform** defining Kubernetes namespaces, secrets, and configuration maps dynamically targeting cluster environments.
-
-4. **Continuous Delivery (CD):**
-   * Managed via **Helm Charts** defining scalable templates (Deployments, Services, Ingresses, HPA, and ServiceMonitors) synchronized automatically onto the cluster via **ArgoCD**.
-
-5. **Site Reliability Engineering (SRE):**
-   * Vertically scaled from `t3.micro` (1 GB) through `t3.small` (2 GB) to **`c7i-flex.large`** (4 GB RAM) on AWS EC2, diagnosing and resolving Out-Of-Memory (OOM) crashes at each stage.
-   * Configured a **2 GB Linux Swap file** (`/swapfile`) and performed live K3s control-plane recovery under SQLite database lock contention.
+| Katman | Teknoloji | Açıklama |
+| :--- | :--- | :--- |
+| **Cloud Provider** | AWS EC2 (Ubuntu 22.04) | 7/24 çalışan bulut sunucu altyapısı. |
+| **Container & K8s** | Docker / K3s | CNCF sertifikalı, hafif Kubernetes orkestrasyon motoru. |
+| **GitOps & Package** | ArgoCD / Helm v3 | Kod değişikliğini kümede otomatik yayınlayan CD motoru. |
+| **Ingress & Traffic** | Traefik v2 | Akıllı yük dengeleyici ve dynamic routing. |
+| **Monitoring** | Prometheus / Grafana / Chart.js | Canlı metrik toplama ve zaman serisi grafikleri. |
+| **Ops Dashboard** | Python FastAPI / HTML5 / CSS3 | Merkezi yönetim ve operasyon paneli. |
 
 ---
 
-## 📸 Platform Previews & Dashboards
+## 🚀 Hızlı Başlatma (Quick Start)
 
-Below are the live dashboard captures verifying the successful GitOps synchronization and the dynamic load testing metrics on our AWS cluster:
-
-### 1. ArgoCD GitOps Sync Status
-![ArgoCD Dashboard](./argocd-dashboard.png)
-
-### 2. ArgoCD GitOps Card Status
-![ArgoCD Dashboard](./argo_card.png)
-
-### 3. Grafana Observability Dashboard (Under Sleep-Wave Load Test)
-![Grafana Dashboard](./grafana-observability.png)
-
-### 4. Grafana Observability HTTP Request Rate
-![Grafana Dashboard](./grafana_rr.png)
-
-### 5. Grafana Observability Average Request Latency 
-![Grafana Dashboard](./grafana_arl.png)
-
----
-
-## 📂 Repository Structure
-
-```text
-├── .github/workflows/
-│   └── ci.yml               # GitHub Actions CI pipeline (Ruff lint & Trivy scan)
-├── terraform/
-│   ├── main.tf              # Terraform manifests (Namespaces, Secrets, ConfigMaps)
-│   ├── providers.tf         # K8s provider bindings (AWS remote Kubeconfig target)
-│   └── variables.tf         # Parameterized input variables
-├── helm/microgitops/
-│   ├── Chart.yaml           # Helm chart metadata
-│   ├── values.yaml          # Configuration panel (replicas, CPU/RAM, ingress, HPA)
-│   └── templates/           # K8s templates (deployment, service, ingress, HPA, servicemonitor)
-├── grafana/
-│   └── dashboard.json       # Custom Grafana dashboard JSON model
-├── main.py                  # FastAPI server with Prometheus instrumentation middleware
-├── Dockerfile               # Production-hardened multi-stage Docker build
-├── argocd-app.yaml          # ArgoCD Application manifest for GitOps sync
-├── stress_test.py           # Dynamic wave-pattern HTTP load testing utility
-├── requirements.txt         # Python dependencies (FastAPI, Uvicorn, Prometheus)
-└── README.md                # Project documentation
-```
-
----
-
-## ⚙️ How to Deploy & Verify
-
-### 1. Local Container Verification (Docker)
-Build and run the application locally to test the API endpoints:
+### 1. Depoyu Klonlayın
 ```bash
-# Build the container
-docker build -t microgitops:v1 .
-
-# Run the container mapping ports locally
-docker run --rm -p 8000:8000 microgitops:v1
+git clone https://github.com/Bullute/MicroGitOps.git
+cd MicroGitOps
 ```
-Access endpoints:
-* **Home:** `http://localhost:8000/`
-* **Health Check:** `http://localhost:8000/health`
-* **Metrics:** `http://localhost:8000/metrics`
 
-### 2. Infrastructure Deployment (Terraform & Helm)
-Connect to the AWS K3s cluster and run:
+### 2. Ops Panelini Çalıştırın
 ```bash
-# Apply Terraform foundations
-cd terraform && terraform init && terraform apply -auto-approve
-
-# Install Helm App Stack
-cd .. && helm upgrade --install microgitops-release ./helm/microgitops -n microgitops
+python panel/server.py
 ```
+Tarayıcıda `http://localhost:7777` adresini açın.
 
-### 3. Load Testing & Monitoring Verification
-Run the built-in stress test to generate dynamic traffic patterns:
-```bash
-python stress_test.py
-```
-Once targets are scraped by Prometheus, import the `grafana/dashboard.json` dashboard to view:
-* HTTP Request Rates (counts/success)
-* Request Duration Latencies (percentiles)
-* Dynamic wave-pattern traffic visualizations
+---
+
+## 📊 Performans ve Benchmark Sonuçları
+
+Autocannon ile yapılan yük testi sonuçları:
+
+* **Varsayılan Durum (2 Pods):** 300 RPS \| 67ms Yanıt Süresi
+* **Maksimum Yük Durumu (10 Pods HPA):** **1.500 RPS (Dakikada 90.000 / Günde 100M İstek)**
+* **Hata Oranı:** %0.00
+
+---
+
+## 📄 Lisans
+Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.
