@@ -12,7 +12,7 @@ service:
 ingress:
   enabled: true
   className: "traefik"
-  host: "microgitops.duckdns.org"
+  host: "microgitops.local"
 
 hpa:
   enabled: true
