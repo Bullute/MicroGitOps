@@ -25,7 +25,7 @@ REQUESTS_FILE = PROJECT_DIR / "panel" / "onboarding_requests.json"
 
 _pids: dict[str, int] = {}
 GRAFANA_PASSWORD = "YIQ5fTrlrgt9i0Vax4jfLwcZ0dw1xPuzDuXuyl3K"
-HOSTS_DOMAIN = "microgitops.local"
+HOSTS_DOMAIN = "microgitops.duckdns.org"
 
 
 def run(cmd: list[str], timeout: int = 15) -> dict:
@@ -363,7 +363,7 @@ def stress_start(body: dict = Body(default={})):
     if "stress" in _pids and _is_alive(_pids["stress"]):
         return JSONResponse({"success": False, "output": "Autocannon stress test is already running."})
     
-    target = body.get("target", "http://microgitops.local/burn?duration=5")
+    target = body.get("target", "http://microgitops.duckdns.org/burn?duration=5")
     connections = str(body.get("connections", 50))
     
     proc = subprocess.Popen(
