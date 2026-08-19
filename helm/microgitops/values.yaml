@@ -18,16 +18,16 @@ hpa:
   enabled: true
   minReplicas: 2
   maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
+  targetCPUUtilizationPercentage: 65
   targetMemoryUtilizationPercentage: 80
 
 resources:
   limits:
-    cpu: 500m
+    cpu: 400m
     memory: 256Mi
   requests:
     cpu: 100m
-    memory: 128Mi
+    memory: 64Mi
 
 serviceMonitor:
   enabled: true

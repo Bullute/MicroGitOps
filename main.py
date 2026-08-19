@@ -1,5 +1,6 @@
 import time
 import math
+import asyncio
 
 from fastapi import FastAPI, Response
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
@@ -40,34 +41,38 @@ async def monitor_requests(request, call_next):
     return response
 
 @app.get("/")
-def read_root():
+async def read_root():
     return {"message": "Welcome to MicroGitOps Core Service!"}
 
 @app.get("/health")
-def health_check():
-    """Liveness and Readiness Probe Endpoint."""
+async def health_check():
+    """Liveness and Readiness Probe Endpoint - Non-blocking async response."""
     return {"status": "healthy"}
 
 @app.get("/metrics")
-def metrics():
+async def metrics():
     """Endpoint for Prometheus scraping."""
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
+def _do_burn(duration: int) -> int:
+    """Synchronous CPU burn function executed in worker thread pool."""
+    start = time.time()
+    count = 0
+    while time.time() - start < duration:
+        n = 100_000 + (count % 1000)
+        all(n % i != 0 for i in range(2, int(math.sqrt(n)) + 1))
+        count += 1
+    return count
+
 @app.get("/burn")
-def cpu_burn(duration: int = 5):
+async def cpu_burn(duration: int = 5):
     """
     HPA Test Endpoint: Intentional CPU burn for auto-scaling demos.
-    Simulates a compute-heavy workload (e.g. image processing, ML inference).
-    duration: seconds to burn CPU (default: 5, max: 30)
+    Offloaded to worker thread pool via asyncio.to_thread so main event loop never blocks.
     """
     duration = min(duration, 30)  # Safety cap
     start = time.time()
-    count = 0
-    # Prime number sieve — CPU intensive computation
-    while time.time() - start < duration:
-        n = 100_000 + count
-        all(n % i != 0 for i in range(2, int(math.sqrt(n)) + 1))
-        count += 1
+    count = await asyncio.to_thread(_do_burn, duration)
     elapsed = time.time() - start
     return {
         "status": "burn complete",
