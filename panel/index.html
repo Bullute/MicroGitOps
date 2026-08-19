@@ -1061,7 +1061,7 @@ summary.faq-summary::-webkit-details-marker { display: none; }
     chartData.cpu.push(cpuVal);
     chartData.mem.push(memVal);
 
-    if (chartData.labels.length > 50) {
+    if (chartData.labels.length > 120) {
       chartData.labels.shift();
       chartData.cpu.shift();
       chartData.mem.shift();
@@ -1076,7 +1076,7 @@ summary.faq-summary::-webkit-details-marker { display: none; }
     hpaChartData.replicas.push(replicas);
     hpaChartData.cpuLoad.push(cpuVal);
 
-    if (hpaChartData.labels.length > 50) {
+    if (hpaChartData.labels.length > 120) {
       hpaChartData.labels.shift();
       hpaChartData.replicas.shift();
       hpaChartData.cpuLoad.shift();
