@@ -1,81 +1,98 @@
-# 🚀 MicroGitOps — Production-Grade Managed Service & Observability Platform
+# ⚡ MicroGitOps — Production-Grade Managed Service & GitOps Platform
 
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-K3s-blue.svg?logo=kubernetes)](https://k3s.io/)
 [![GitOps](https://img.shields.io/badge/GitOps-ArgoCD-orange.svg?logo=argo)](https://argoproj.github.io/cd/)
 [![Cloud](https://img.shields.io/badge/Cloud-AWS_EC2-FF9900.svg?logo=amazon-aws)](https://aws.amazon.com/)
+[![IaC](https://img.shields.io/badge/IaC-Terraform-purple.svg?logo=terraform)](https://www.terraform.io/)
+[![DevSecOps](https://img.shields.io/badge/DevSecOps-Trivy_Scan-green.svg?logo=aquasec)](https://trivy.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**MicroGitOps**, AWS cloud altyapısı üzerinde çalışan, Kubernetes tabanlı, GitOps prensipleriyle yönetilen, otomatik ölçeklenebilen (**HPA**) ve özel geliştirilmiş **Dockhand Ops Panel** ile canlı izlenebilen production-ready bir altyapı platformudur.
+**MicroGitOps**, AWS bulut altyapısı üzerinde çalışan, Kubernetes tabanlı, **ArgoCD GitOps** prensipleriyle yönetilen, otomatik ölçeklenebilen (**HPA**) ve özel geliştirilmiş **Dockhand Ops Panel** ile 7/24 canlı izlenebilen production-ready bir Managed Service Provider (MSP) altyapı platformudur.
 
 ---
 
-## 📸 Ekran Görüntüleri (Platform Visuals)
+## 📸 Platform Görsel Sergisi (Visual Showcase)
 
-### 1. Dockhand Operations Dashboard (Canlı Metrikler & Pod Haritası)
-![Dockhand Dashboard](docs/screenshots/dashboard.png)
+Projenin canlı ortam ekran görüntüleri `docs/screenshots/` klasöründe yer almaktadır:
 
-### 2. Workloads Manager (Canlı Pod & Replica Kontrolü)
-![Workloads Manager](docs/screenshots/workloads.png)
-
-### 3. Otomatik Ölçeklenme & Yük Testi (HPA Auto-Scaling in Action)
-![HPA Autoscaling](docs/screenshots/hpa-autoscale.png)
-
-### 4. Tünel ve Dinamik Secret Yönetimi (Port Forwards & ArgoCD Key)
-![Port Forwards & Tunnels](docs/screenshots/tunnels.png)
-
-### 5. İş Odaklı Sunum Sayfası (Business Landing Page)
-![Business Landing Page](docs/screenshots/landing-page.png)
+| Ekran | Açıklama | Görsel |
+| :--- | :--- | :--- |
+| **1. Dockhand Ops Panel** | Canlı sistem metrikleri, Pod haritası ve tünel yönetimi | `![Dashboard](docs/screenshots/dashboard.png)` |
+| **2. Workloads Manager** | Tek tıkla Replica ölçekleme, restart ve Pod yaşam döngüsü | `![Workloads](docs/screenshots/workloads.png)` |
+| **3. Live HPA Autoscaling** | Yük altında 2 → 10 Pod anlık dinamik ölçeklenme grafiği | `![HPA Chart](docs/screenshots/hpa-autoscale.png)` |
+| **4. Credentials & Tunnels** | Şifre yönetimi, Port-forwarding ve canlı tünel erişimi | `![Tunnels](docs/screenshots/tunnels.png)` |
+| **5. Business Landing Page** | Global standartlarda İngilizce sunum ve metrik lansman sayfası | `![Landing Page](docs/screenshots/landing-page.png)` |
 
 ---
 
-## 🔥 Temel Özellikler (Key Features)
+## 🔥 Temel Özellikler ve Öne Çıkan Başarılar
 
-* **🚀 Zero-Downtime GitOps (ArgoCD & Helm):** Git deposuna atılan her commit, kümede sıfır kesintiyle otomatik güncellenir (`Auto-Sync & Self-Healing`).
-* **⚡ HPA Auto-Scaling Kriz Koruması:** Ani trafik yükünde CPU kullanımı %70'i aştığında sistem 2 saniye içinde Pod kapasitesini **2 → 10** katına otomatik çıkarır.
-* **📊 1.500 RPS Performans Kapasitesi:** Autocannon ile yapılan yük testlerinde tek node AWS EC2 sunucusu üzerinde %0 hatayla saniyede 1.500 istek (**günde ~100 Milyon istek**) karşılanmıştır.
-* **🛠️ Dockhand Ops Panel (FastAPI + HTML5):** Komut satırı karmaşasını ortadan kaldıran; canlı metrikleri, Pod yönetimi, tünelleri ve şifreleri tek ekranda toplayan yönetim arayüzü.
-* **🌐 Traefik Ingress & Dynamic Routing:** Domain yönlendirmeleri (`microgitops.local`) ve yük dengeleme otomatik olarak sağlanır.
+* **🚀 Zero-Downtime GitOps (ArgoCD & Helm v3):** 
+  Kod veya altyapı konfigürasyonu Git deposuna `push` edildiğinde, ArgoCD değişikliği algılar ve **kesintisiz (rolling-update)** olarak ortama yayar (`Auto-Sync & Self-Healing`).
+* **⚡ Sub-Second HPA Auto-Scaling:** 
+  Trafik patlamalarında CPU yükü %50'yi aştığında Kubernetes HPA pod kapasitesini **2 → 10 pod'a** hızla çıkarır.
+* **🛡️ Yo-Yo (Flapping) Önleyici HPA Stabilizasyonu:** 
+  Trafik aniden düştüğünde sistemin ani pod kapatmasını engellemek için `stabilizationWindowSeconds: 300` (5 Dakika Soğuma Penceresi) uygulanmıştır.
+* **🔒 DevSecOps Güvenlik Hattı (Trivy Scan):** 
+  GitHub Actions CI/CD hattında Trivy taraması çalıştırılarak CVE zafiyeti barındıran container imajlarının canlı ortama geçişi otomatik engellenir.
+* **📊 1.500 RPS Performans Kapasitesi:** 
+  Autocannon yük testinde tek node AWS EC2 sunucusu üzerinde **%0.00 hata oranı** ile saniyede 1.500 istek (**dakikada 90.000 / günde ~100 Milyon istek**) karşılanmıştır.
+* **🛠️ Dockhand Ops Panel (FastAPI & Chart.js):** 
+  Komut satırı karmaşasını ortadan kaldıran; canlı düğüm telemetrisi, Pod yönetimi, tüneller ve canlı `kubectl` çıktılarını sunan merkezi operasyon paneli (`http://localhost:7777`).
 
 ---
 
-## 🏗️ Sistem Mimarisi (Architecture)
+## 🏗️ Sistem Mimarisi (Architecture Flowchart)
 
 ```
-                       ┌─────────────────────────────────────────┐
-                       │           AWS EC2 Cloud Node            │
-                       │                                         │
-[ Ziyaretçi / Müşteri ] ──► [ Traefik Ingress Controller ]        │
-                                       │                         │
-                     ┌─────────────────┴─────────────────┐       │
-                     ▼                                   ▼       │
-        [ Service: microgitops-app ]          [ Dockhand Ops Panel ]
-                     │                             (Port 7777)
-                     ▼                                   │
-      ┌──────────────────────────────┐                   │
-      │   Kubernetes Pods (HPA)      │ ◄─────────────────┘
-      │  [ Pod 1 ] [ Pod 2 ] ...     │   (Scale / Restart / Logs)
-      └──────────────────────────────┘
-                     ▲
-                     │ (Pull-based Auto Sync)
-           [ ArgoCD Controller ] ◄────── [ GitHub Repository ]
+                                  [ Geliştirici Git Commit ]
+                                               │
+                                               ▼
+                                 [ GitHub Actions CI Pipeline ]
+                                  (Trivy CVE Security Scan)
+                                               │
+                                               ▼
+                                   [ ECR / Docker Hub Registry ]
+                                               │
+                                               ▼
+                       ┌──────────────────────────────────────────────┐
+                       │              AWS EC2 Cloud Node              │
+                       │                                              │
+[ Ziyaretçi Trafiği ] ──► [ Traefik Ingress Controller ]              │
+                                       │                              │
+                     ┌─────────────────┴──────────────────┐           │
+                     ▼                                    ▼           │
+        [ Service: microgitops-app ]          [ Dockhand Ops Panel ]  │
+                     │                             (Port 7777)        │
+                     ▼                                    │           │
+      ┌──────────────────────────────┐                    │           │
+      │   Kubernetes Pods (HPA)      │ ◄──────────────────┘           │
+      │  [ Pod 1 ] [ Pod 2 ] ...     │   (Workloads / Scale / Logs)   │
+      └──────────────────────────────┘                                │
+                     ▲                                                │
+                     │ (Pull-based Auto-Sync & Self-Healing)          │
+           [ ArgoCD Controller ] ◄────── [ Git Repository (State) ]    │
+                       └──────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🛠️ Teknolojik Altyapı (Tech Stack)
+## 🛠️ Teknolojik Altyapı Katmanları (Tech Stack)
 
 | Katman | Teknoloji | Açıklama |
 | :--- | :--- | :--- |
-| **Cloud Provider** | AWS EC2 (Ubuntu 22.04) | 7/24 çalışan bulut sunucu altyapısı. |
-| **Container & K8s** | Docker / K3s | CNCF sertifikalı, hafif Kubernetes orkestrasyon motoru. |
-| **GitOps & Package** | ArgoCD / Helm v3 | Kod değişikliğini kümede otomatik yayınlayan CD motoru. |
-| **Ingress & Traffic** | Traefik v2 | Akıllı yük dengeleyici ve dynamic routing. |
-| **Monitoring** | Prometheus / Grafana / Chart.js | Canlı metrik toplama ve zaman serisi grafikleri. |
-| **Ops Dashboard** | Python FastAPI / HTML5 / CSS3 | Merkezi yönetim ve operasyon paneli. |
+| **Cloud Infrastructure** | AWS EC2 (Ubuntu 22.04 LTS) | AWS üzerinde konuşlandırılmış 7/24 kesintisiz bulut sunucu. |
+| **Orchestration** | Kubernetes (K3s) | CNCF sertifikalı, yüksek performanslı hafif Kubernetes kümesi. |
+| **IaC & Automation** | Terraform | Bulut kaynaklarının kodla (Infrastructure as Code) oluşturulması. |
+| **Continuous Delivery** | ArgoCD | GitOps mantığıyla çalışan pull-based sürekli canlılama motoru. |
+| **Packaging & Config** | Helm v3 | Kubernetes uygulama paketleme ve versiyonlama aracı. |
+| **Ingress & Networking** | Traefik v2 | Akıllı yük dengeleyici ve dynamic HTTP/HTTPS routing. |
+| **DevSecOps** | Trivy Scanner | Container imaj güvenlik ve CVE zafiyet taraması. |
+| **Ops Dashboard** | Python FastAPI / HTML5 / Chart.js | Merkezi küme izleme, HPA grafikleri ve Workloads Manager. |
 
 ---
 
-## 🚀 Hızlı Başlatma (Quick Start)
+## ⚙️ Kurulum ve Hızlı Başlatma (Quick Start)
 
 ### 1. Depoyu Klonlayın
 ```bash
@@ -87,17 +104,43 @@ cd MicroGitOps
 ```bash
 python panel/server.py
 ```
-Tarayıcıda `http://localhost:7777` adresini açın.
+Tarayıcıdan **`http://localhost:7777`** adresine gidin.
+
+### 3. ArgoCD & Kubernetes Durumunu Doğrulayın
+```bash
+kubectl --kubeconfig ./aws-kubeconfig get app -n argocd
+```
+Çıktı: `microgitops-app Synced Healthy 💚`
 
 ---
 
-## 📊 Performans ve Benchmark Sonuçları
+## 📈 Performans ve Benchmark Özetı
 
-Autocannon ile yapılan yük testi sonuçları:
+Autocannon ile gerçekleştirilen stres testi sonuçları:
 
-* **Varsayılan Durum (2 Pods):** 300 RPS \| 67ms Yanıt Süresi
-* **Maksimum Yük Durumu (10 Pods HPA):** **1.500 RPS (Dakikada 90.000 / Günde 100M İstek)**
-* **Hata Oranı:** %0.00
+| Metrik | Varsayılan (2 Pods) | Maksimum Yük (10 Pods HPA) |
+| :--- | :--- | :--- |
+| **Saniyedeki İstek (RPS)** | 300 RPS | **1.500 RPS** |
+| **Dakikadaki İşlem** | 18.000 Req/Min | **90.000 Req/Min** |
+| **Günlük Yük Kapasitesi** | ~25M Req/Day | **~100M Req/Day** |
+| **Ortalama Yanıt Süresi** | 42ms | **67ms** |
+| **Hata / Paket Kaybı** | %0.00 | **%0.00** |
+
+---
+
+## 🧠 Üretim Ortamı Problem & Çözüm Vakaları (Troubleshooting Scenarios)
+
+Bu altyapı geliştirilirken karşılaşılan ve çözülen mülakat seviyesi teknik zorluklar:
+
+1. **Yo-Yo (Flapping) Dalgalanması ve Çözümü:**
+   * *Problem:* Trafik biter bitmez HPA'nın pod'ları anında kapatması ve tekrar yük gelince yeniden açması sebebiyle pod'ların sürekli açılıp kapanması.
+   * *Çözüm:* HPA spec içerisine `scaleDown.stabilizationWindowSeconds: 300` (5 dakika soğuma süresi) eklendi.
+2. **Kubelet Probe Timeout ve Erken Pod Öldürme:**
+   * *Problem:* Aşırı yük altında pod CPU'su sınırlandığında `/health` kontrolünün 1 saniyeden uzun sürmesi ve Kubelet'in pod'u öldürüp ArgoCD'yi `Degraded (Kırmızı Kalp)` yapması.
+   * *Çözüm:* `readinessProbe` süresi `initialDelaySeconds: 2`, `periodSeconds: 3` yapılarak pod'ların 2 saniyede `Ready` olması sağlandı; probe timeout süresi 5 saniyeye yükseltildi.
+3. **Tek Sunucuda CPU Darboğazı Önleme:**
+   * *Problem:* Pod başı `500m` CPU limiti 10 pod açıldığında tek EC2 sunucusunu kilitliyordu.
+   * *Çözüm:* Pod başı CPU isteği `50m`, limiti `200m` olarak ayarlanarak 10 pod'un kümede sorunsuz sığması sağlandı.
 
 ---
 
