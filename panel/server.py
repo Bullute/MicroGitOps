@@ -264,6 +264,8 @@ async def api_update_ip(body: dict):
     try:
         content = KUBECONFIG.read_text()
         content = re.sub(r"https://[^:]+:", f"https://{new_ip}:", content)
+        if "insecure-skip-tls-verify" not in content:
+            content = re.sub(r"- cluster:\n", "- cluster:\n    insecure-skip-tls-verify: true\n", content)
         KUBECONFIG.write_text(content)
         messages.append(f"✔ aws-kubeconfig updated ({old_ip} → {new_ip})")
     except Exception as e:
@@ -379,19 +381,23 @@ def stress_start(body: dict = Body(default={})):
 
 @app.post("/api/stress/stop")
 def stress_stop():
-    if "stress" not in _pids:
-        return JSONResponse({"success": True, "output": "No active stress test."})
-    try:
-        pid = _pids["stress"]
+    messages = []
+    # 1. Kill internal tracked process if alive
+    if "stress" in _pids:
         try:
-            os.kill(pid, signal.SIGTERM)
+            pid = _pids["stress"]
+            os.kill(pid, signal.SIGKILL)
         except Exception:
             pass
-        subprocess.run(["pkill", "-f", "autocannon"], capture_output=True)
         _pids.pop("stress", None)
-        return JSONResponse({"success": True, "output": "⏹ Autocannon stress test stopped. HPA scale-down will initiate shortly."})
-    except Exception as e:
-        return JSONResponse({"success": False, "output": str(e)})
+        messages.append("✔ Tracked stress test process terminated.")
+
+    # 2. System-wide kill for ALL autocannon / stress test processes (internal or external)
+    subprocess.run(["pkill", "-9", "-f", "autocannon"], capture_output=True)
+    subprocess.run(["pkill", "-9", "-f", "burn"], capture_output=True)
+    messages.append("⏹ All Autocannon & stress test processes stopped system-wide. HPA scale-down will initiate shortly.")
+
+    return JSONResponse({"success": True, "output": "\n".join(messages)})
 
 
 @app.get("/api/hpa-status")
