@@ -22,12 +22,12 @@ spec:
           averageUtilization: {{ .Values.hpa.targetCPUUtilizationPercentage }}
   behavior:
     scaleDown:
-      stabilizationWindowSeconds: 120
+      stabilizationWindowSeconds: 60
       selectPolicy: Min
       policies:
         - type: Percent
-          value: 25
-          periodSeconds: 30
+          value: 50
+          periodSeconds: 15
     scaleUp:
       stabilizationWindowSeconds: 0
       selectPolicy: Max
