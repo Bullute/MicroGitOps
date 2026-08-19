@@ -15,13 +15,20 @@
 
 ## 📸 Platform Visual Showcase
 
-| Component | Description | Preview Link |
-| :--- | :--- | :--- |
-| **1. Dockhand Ops Panel** | Real-time node metrics, active Pod topology, and tunnel access | `![Dashboard](docs/screenshots/dashboard.png)` |
-| **2. Workloads Manager** | One-click replica scaling, zero-downtime restarts, and pod controls | `![Workloads](docs/screenshots/workloads.png)` |
-| **3. Live HPA Autoscaling** | Real-time load-driven scale-up graph (2 → 10 Replicas) | `![HPA Chart](docs/screenshots/hpa-autoscale.png)` |
-| **4. Tunnels & Credentials** | Dynamic port-forwarding, SSH status, and secret retrieval | `![Tunnels](docs/screenshots/tunnels.png)` |
-| **5. Business Landing Page** | Global enterprise presentation and live telemetry stats | `![Landing Page](docs/screenshots/landing-page.png)` |
+### 1. Dockhand Operations Dashboard (Real-Time Node Telemetry & Pod Map)
+![Dashboard](docs/screenshots/dashboard.png)
+
+### 2. Workloads Manager (Single-Pane Pod Controls & Replica Scaling)
+![Workloads Manager](docs/screenshots/workloads.png)
+
+### 3. Live HPA Auto-Scaling (Real-Time 2 → 10 Replica Scale-Up Graph)
+![HPA Autoscaling](docs/screenshots/hpa-autoscale.png)
+
+### 4. Port Forwards & Dynamic Tunnels (ArgoCD & Grafana Credentials)
+![Tunnels & Secrets](docs/screenshots/tunnels.png)
+
+### 5. Enterprise Presentation Landing Page (English Metric Showcase)
+![Landing Page](docs/screenshots/landing-page.png)
 
 ---
 

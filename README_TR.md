@@ -15,13 +15,20 @@
 
 ## 📸 Platform Görsel Sergisi (Visual Showcase)
 
-| Ekran | Açıklama | Görsel |
-| :--- | :--- | :--- |
-| **1. Dockhand Ops Panel** | Canlı sistem metrikleri, Pod haritası ve tünel yönetimi | `![Dashboard](docs/screenshots/dashboard.png)` |
-| **2. Workloads Manager** | Tek tıkla Replica ölçekleme, restart ve Pod yaşam döngüsü | `![Workloads](docs/screenshots/workloads.png)` |
-| **3. Live HPA Autoscaling** | Yük altında 2 → 10 Pod anlık dinamik ölçeklenme grafiği | `![HPA Chart](docs/screenshots/hpa-autoscale.png)` |
-| **4. Credentials & Tunnels** | Şifre yönetimi, Port-forwarding ve canlı tünel erişimi | `![Tunnels](docs/screenshots/tunnels.png)` |
-| **5. Business Landing Page** | Global standartlarda İngilizce sunum ve metrik lansman sayfası | `![Landing Page](docs/screenshots/landing-page.png)` |
+### 1. Dockhand Operations Dashboard (Canlı Metrikler & Pod Haritası)
+![Dashboard](docs/screenshots/dashboard.png)
+
+### 2. Workloads Manager (Canlı Pod & Replica Kontrolü)
+![Workloads Manager](docs/screenshots/workloads.png)
+
+### 3. Otomatik Ölçeklenme & Yük Testi (HPA Auto-Scaling in Action)
+![HPA Autoscaling](docs/screenshots/hpa-autoscale.png)
+
+### 4. Tüneller ve Dinamik Secret Yönetimi (Port-Forwards & Key'ler)
+![Tunnels & Secrets](docs/screenshots/tunnels.png)
+
+### 5. İş Odaklı Sunum Sayfası (Business Landing Page)
+![Landing Page](docs/screenshots/landing-page.png)
 
 ---
 
